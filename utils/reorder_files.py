@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 import os
 import shutil
+import pandas as pd
 import re
 
 
@@ -59,6 +60,8 @@ def main():
             space_or_underscore(input_folder, destination_folder, args.dataset_name)
         case "bat-recordings":
             space_or_underscore(input_folder, destination_folder, args.dataset_name)
+        case "thomas-johanssen":
+            johanssen(input_folder, destination_folder, args.dataset_name)
 
         case _:
             print("Dataset not found")
@@ -67,6 +70,41 @@ def main():
 
     # Rest of your code goes here
 
+
+def johanssen(input_folder: Path, destination_folder: Path, dataset_name: str) -> None:
+    
+    df = pd.read_excel("utils\Data_Faxe_2023_TWJohansen Thomas W. Johansen.xlsx")
+    for i, row in df.iterrows():
+        #Folder
+        one = row["boks"].replace(" ", "_").lower()
+        two = row["projekt"]
+        three = "#" 
+        four = row["Lokalitet"]
+        five = str(row["lat"]) .replace(".", ",")
+        six = str(row["lon"]).replace(".", ",")
+
+        #Filename
+        seven = row["dato"]
+        eight = row["tid"]
+        nine = row["m.sek"]
+        if nine == 0:
+            nine = "000"
+
+        folder_name = f"{one}_{two}_{three}_{four}_{five}_{six}"
+        file_name = f"{folder_name}_{seven}_{eight}_{nine}.wav"
+
+        art = str(row["art3"]).replace(" ", "_").lower()
+        print(art)
+    
+        path = f"{folder_name}/{file_name}"
+        print(path)
+
+        bat_path = Path(destination_folder / art)
+        bat_path.mkdir(parents=True, exist_ok=True)
+
+        new_file_path = Path(bat_path / file_name)
+        shutil.copy2(input_folder / path, new_file_path)
+    
 
 def space_or_underscore(input_folder: Path, destination_folder: Path, dataset_name: str) -> None:
 
