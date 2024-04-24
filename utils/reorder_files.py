@@ -8,7 +8,7 @@ import re
 
 species_list = [
     "Myotis daubentonii",
-    "Myotis dasycneme",   
+    "Myotis dasycneme",
     "Myotis brandtii",
     "Myotis mystacinus",
     "Myotis nattereri",
@@ -25,15 +25,17 @@ species_list = [
     "Barbastella barbastellus",
     "Plecotus auritus",
     "Plecotus austriacus",
-    "Myotis alcathoe"
+    "Myotis alcathoe",
 ]
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Reorder files in the input folder.')
-    parser.add_argument('input_folder', help='Path to the input folder')
-    parser.add_argument('destination_folder', help='Path to the destination folder')
-    parser.add_argument('dataset_name', help='Name of the dataset to be appended to the file names.')
+    parser = argparse.ArgumentParser(description="Reorder files in the input folder.")
+    parser.add_argument("input_folder", help="Path to the input folder")
+    parser.add_argument("destination_folder", help="Path to the destination folder")
+    parser.add_argument(
+        "dataset_name", help="Name of the dataset to be appended to the file names."
+    )
     args = parser.parse_args()
 
     input_folder = Path(args.input_folder)
@@ -42,11 +44,11 @@ def main():
     print(f"\n\nInput folder: {input_folder.absolute()}")
     print(f"\n\Destination folder: {destination_folder.absolute()}")
     i = input("Continue? y/n \n")
-    if i.lower() != 'y':
+    if i.lower() != "y":
         print("Exiting...")
         return
-    
-    #Look for dataset
+
+    # Look for dataset
     match args.dataset_name:
         case "chriovox":
             space_or_underscore(input_folder, destination_folder, args.dataset_name)
@@ -66,26 +68,30 @@ def main():
         case _:
             print("Dataset not found")
             return
-    
 
     # Rest of your code goes here
 
 
-def johanssen(input_folder: Path, destination_folder: Path, dataset_name: str) -> None:
-    
-    df = pd.read_excel("utils\Data_Faxe_2023_TWJohansen Thomas W. Johansen.xlsx")
+def johanssen(input_folder: Path, destination_folder: Path, excel_path: Path) -> None:
+
+    df = pd.read_excel(excel_path)
+    # df["art3"] = str(df["art3"]).replace("/", "").lower()
+    suceeded_files = 0
+    failed_files = 0
+    folder_that_failed = {}
     for i, row in df.iterrows():
-        #Folder
+        # Folder
         one = row["boks"].replace(" ", "_").lower()
         two = row["projekt"]
-        three = "#" 
+        three = "#"
         four = row["Lokalitet"]
-        five = str(row["lat"]) .replace(".", ",")
+        five = str(row["lat"]).replace(".", ",")
         six = str(row["lon"]).replace(".", ",")
 
-        #Filename
+        # Filename
         seven = row["dato"]
         eight = row["tid"]
+        eight = f"{eight:06}"
         nine = row["m.sek"]
         if nine == 0:
             nine = "000"
@@ -93,27 +99,43 @@ def johanssen(input_folder: Path, destination_folder: Path, dataset_name: str) -
         folder_name = f"{one}_{two}_{three}_{four}_{five}_{six}"
         file_name = f"{folder_name}_{seven}_{eight}_{nine}.wav"
 
-        art = str(row["art3"]).replace(" ", "_").lower()
-        print(art)
-    
+        art = str(row["art3"]).replace(" ", "_").replace("/", "").lower()
+
+        # print(art)
+
         path = f"{folder_name}/{file_name}"
-        print(path)
+        # print(path)
 
         bat_path = Path(destination_folder / art)
         bat_path.mkdir(parents=True, exist_ok=True)
 
         new_file_path = Path(bat_path / file_name)
-        shutil.copy2(input_folder / path, new_file_path)
-    
+        try:
+            if not (input_folder / path).exists():
 
-def space_or_underscore(input_folder: Path, destination_folder: Path, dataset_name: str) -> None:
+            shutil.copy2(input_folder / path, new_file_path)
+            suceeded_files += 1
+        except Exception as e:
+            print(f"Failed to copy {path} to {new_file_path}")
+            print(e)
+            failed_files += 1
+            folder_that_failed[folder_name] = path
+            # raise e
+    print(f"Succeeded files: {suceeded_files}")
+    print(f"Failed files: {failed_files}")
+    print("folders that failed", folder_that_failed)
+
+
+def space_or_underscore(
+    input_folder: Path, destination_folder: Path, dataset_name: str
+) -> None:
 
     # print(input_folders)
 
     for folder in input_folder.iterdir():
-        if (not folder.is_dir()):
+        if not folder.is_dir():
             continue
-        folder_name = "_".join(re.split(r'[_\s]+', folder.name)[:2]).lower()
+        folder_name = "_".join(re.split(r"[_\s]+", folder.name)[:2]).lower()
         if folder_name not in [s.replace(" ", "_").lower() for s in species_list]:
             print(f"Folder {folder_name} not in species list")
             continue
@@ -131,8 +153,14 @@ def space_or_underscore(input_folder: Path, destination_folder: Path, dataset_na
 
             shutil.copy2(file.absolute(), new_file_path.absolute())
 
-            print(f"Renaming {file.absolute()} to {new_name} in {new_file_path.absolute()}")
+            print(
+                f"Renaming {file.absolute()} to {new_name} in {new_file_path.absolute()}"
+            )
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    source_folder = r"C:\Users\jonat\OneDrive\chalmers\Advanced neural networks\project\dataset\raw data\Thomas W johansen_4"
+    destination_folder = r"C:\Users\jonat\OneDrive\chalmers\Advanced neural networks\project\dataset\raw data\Thomas W johansen_sorted_4"
+    excel_path = f"{source_folder}/excel_data.xlsx"
+    johanssen(Path(source_folder), Path(destination_folder), Path(excel_path))
