@@ -4,6 +4,7 @@ import os
 import shutil
 import pandas as pd
 import re
+from tqdm import tqdm
 
 
 species_list = [
@@ -81,7 +82,7 @@ def johanssen(input_folder: Path, destination_folder: Path, excel_path: Path) ->
     folder_that_failed = {}
     for i, row in df.iterrows():
         # Folder
-        one = row["boks"].replace(" ", "_").lower()
+        one = row["boks"]
         two = row["projekt"]
         three = "#"
         four = row["Lokalitet"]
@@ -92,9 +93,12 @@ def johanssen(input_folder: Path, destination_folder: Path, excel_path: Path) ->
         seven = row["dato"]
         eight = row["tid"]
         eight = f"{eight:06}"
-        nine = row["m.sek"]
-        if nine == 0:
-            nine = "000"
+        nine = f"{row["m.sek"]:03}"
+        if one == "gamma":
+            four = "51a"
+        if one == "twj-05":
+            four = "51b"
+        
 
         folder_name = f"{one}_{two}_{three}_{four}_{five}_{six}"
         file_name = f"{folder_name}_{seven}_{eight}_{nine}.wav"
@@ -103,16 +107,20 @@ def johanssen(input_folder: Path, destination_folder: Path, excel_path: Path) ->
 
         # print(art)
 
-        path = f"{folder_name}/{file_name}"
-        # print(path)
-
         bat_path = Path(destination_folder / art)
         bat_path.mkdir(parents=True, exist_ok=True)
-
         new_file_path = Path(bat_path / file_name)
         try:
+            path = f"{folder_name}/{file_name}"
+            # print("path orig", path)
             if not (input_folder / path).exists():
-
+                folder_name = f"{one}_{two}_{three}_ekstra 1_{five}_{six}"
+                file_name = f"{folder_name}_{seven}_{eight}_{nine}.wav"
+            # if not (input_folder / path).exists():
+            #     folder_name = f"{one}_{two}_{three}_{four}_{five}_{six}"
+            #     file_name = f"{folder_name}_{seven}_{eight}_{nine}.wav"
+            path = f"{folder_name}/{file_name}"
+            # print("path new", path)
             shutil.copy2(input_folder / path, new_file_path)
             suceeded_files += 1
         except Exception as e:
@@ -145,7 +153,8 @@ def space_or_underscore(
         bat_path = Path(destination_folder / folder_name)
         bat_path.mkdir(parents=True, exist_ok=True)
 
-        for i, file in enumerate(folder.glob("*.wav")):
+        for i, file in tqdm(enumerate(folder.glob("*.wav"))):
+            
             new_name = f"{file.stem}_{dataset_name}.wav"
             # new_path = destination_folder.joinpath(folder_name).joinpath(new_name)
 
