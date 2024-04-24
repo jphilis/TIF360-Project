@@ -79,15 +79,21 @@ def space_or_underscore(input_folder: Path, destination_folder: Path, dataset_na
         if folder_name not in [s.replace(" ", "_").lower() for s in species_list]:
             print(f"Folder {folder_name} not in species list")
             continue
-        print("here")
+
+        print(folder_name)
+
+        bat_path = Path(destination_folder / folder_name)
+        bat_path.mkdir(parents=True, exist_ok=True)
 
         for i, file in enumerate(folder.glob("*.wav")):
             new_name = f"{file.stem}_{dataset_name}.wav"
-            new_path = destination_folder.joinpath(folder_name).joinpath(new_name)
-            new_path.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(file.absolute(), new_path.absolute())
+            # new_path = destination_folder.joinpath(folder_name).joinpath(new_name)
 
-            print(f"Renaming {file.absolute()} to {new_name} in {new_path.absolute()}")
+            new_file_path = Path(bat_path / new_name)
+
+            shutil.copy2(file.absolute(), new_file_path.absolute())
+
+            print(f"Renaming {file.absolute()} to {new_name} in {new_file_path.absolute()}")
 
 
 if __name__ == "__main__":
