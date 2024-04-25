@@ -64,7 +64,8 @@ def main():
         case "bat-recordings":
             space_or_underscore(input_folder, destination_folder, args.dataset_name)
         case "thomas-johanssen":
-            johanssen(input_folder, destination_folder, args.dataset_name)
+            space_or_underscore(input_folder, destination_folder, args.dataset_name)
+            # johanssen(input_folder, destination_folder, args.dataset_name)
 
         case _:
             print("Dataset not found")
@@ -80,6 +81,7 @@ def johanssen(input_folder: Path, destination_folder: Path, excel_path: Path) ->
     suceeded_files = 0
     failed_files = 0
     folder_that_failed = {}
+    all_file_paths = []
     for i, row in df.iterrows():
         # Folder
         one = row["boks"]
@@ -122,6 +124,8 @@ def johanssen(input_folder: Path, destination_folder: Path, excel_path: Path) ->
             path = f"{folder_name}/{file_name}"
             # print("path new", path)
             shutil.copy2(input_folder / path, new_file_path)
+
+            all_file_paths.append((file_name, new_file_path))
             suceeded_files += 1
         except Exception as e:
             print(f"Failed to copy {path} to {new_file_path}")
@@ -132,6 +136,57 @@ def johanssen(input_folder: Path, destination_folder: Path, excel_path: Path) ->
     print(f"Succeeded files: {suceeded_files}")
     print(f"Failed files: {failed_files}")
     print("folders that failed", folder_that_failed)
+    return all_file_paths
+
+def look_for_duplicates(all_file_paths):
+    duplicates = []
+    for i, file_tuple in enumerate(all_file_paths):
+        file_name, new_file_path = file_tuple
+        for j, file_tuple2 in enumerate(all_file_paths):
+            file_name2, new_file_path2 = file_tuple2
+            if j <= i:
+                continue
+            if file_name == file_name2:
+                duplicates.extend((new_file_path, new_file_path2))
+                #dleete the new_file_path2
+                try:
+                    os.remove(new_file_path)
+                    os.remove(new_file_path2)
+                
+                except Exception as e:
+                    pass
+    print("Duplicates", duplicates)
+    print("len duplicates", len(duplicates))
+
+
+from pathlib import Path
+
+def rename_folders(input_folder: Path):
+    bat_species_to_scientific = {
+        "brunflagermus": "myotis_brandtii",
+        "sydflagermus": "nyctalus_leisleri",
+        "vandflagermus": "myotis_daubentonii",
+        "dværgflagermus": "pipistrellus_pipistrellus",
+        "brun-/skimmel-/sydflagermus": "nyctalus_noctula",
+        "troldflagermus": "plecotus_auritus",
+        "damflagermus": "myotis_dasycneme",
+        "frynseflagermus": "myotis_nattereri",
+        "myotis_sp": "myotis_sp",
+        "skimmelflagermus": "myotis_bechsteinii",
+        "dam-/vandflagermus": "myotis_dasycneme",
+        "bredøret_flagermus": "plecotus_auritus",
+        "brandts-/bechsteins-/skægflagermus": "myotis_brandtii_/_myotis_bechsteinii_/_myotis_mystacinus",
+        "støj": "noise",
+        "ubestemt_flagermus": "undetermined_bat",
+        "brun_langøre": "plecotus_austriacus"
+    }
+    for folder_path in input_folder.iterdir():
+        folder_name = folder_path.name.lower()
+        print("folder_name", folder_name)
+        if folder_name in bat_species_to_scientific:
+            new_folder_name = bat_species_to_scientific[folder_name]
+            print("rename folder", folder_name, "to", new_folder_name)
+            folder_path.rename(folder_path.parent / new_folder_name)
 
 
 def space_or_underscore(
@@ -172,4 +227,7 @@ if __name__ == "__main__":
     source_folder = r"C:\Users\jonat\OneDrive\chalmers\Advanced neural networks\project\dataset\raw data\Thomas W johansen_4"
     destination_folder = r"C:\Users\jonat\OneDrive\chalmers\Advanced neural networks\project\dataset\raw data\Thomas W johansen_sorted_4"
     excel_path = f"{source_folder}/excel_data.xlsx"
-    johanssen(Path(source_folder), Path(destination_folder), Path(excel_path))
+    main()
+    # all_file = johanssen(Path(source_folder), Path(destination_folder), Path(excel_path))
+    # rename_folders(Path(destination_folder))
+
