@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 
 print(torch.__version__)
 print(torchaudio.__version__)
-import os
 
 
 def save_mel_spectrogram(waveform, sample_rate, filename):
@@ -27,20 +26,12 @@ def save_mel_spectrogram(waveform, sample_rate, filename):
         aspect="auto",
         origin="lower",
     )
-
-    # plt.plot(mel_spectrogram.log2()[0, :, :].numpy(), cmap="hot", aspect="auto2", origin="lower")
     ax = plt.Axes(fig, [0.0, 0.0, 1.0, 1.0])
     ax.set_axis_off()
-    # ax.plot(mel_spectrogram.log2()[0, :, :].numpy(), cmap="hot", aspect="auto", origin="lower")
     fig.add_axes(ax)
     plt.axis("off")
-    # plt.title("Mel Spectrogram (Torchaudio)")
-    # plt.xlabel("Time")
-    # plt.ylabel("Frequency")
-    # plt.colorbar(format="%+2.0f dB")
-    # plt.show()
-    # resample image to 224x224 before saving
     fig.savefig(filename)
+    plt.close("all")
     print("saved", filename)
 
 
@@ -123,69 +114,22 @@ def main():
         for file in bat.iterdir():
             print(file.absolute())
             waveform, sample_rate = torchaudio.load(file.absolute())
+
             waveform = resample(waveform, sample_rate, target_sr)
-            waveform = apply_bandpass_filter(waveform, target_sr, 20000, 120000)
 
-            bat_path = Path(destination_folder / bat.stem)
-
-            if not bat_path.exists():
-                bat_path.mkdir(parents=True, exist_ok=True)
-
-            save_destination = Path( destination_folder / bat.stem / file.stem)
-            save_mel_spectrogram(waveform, target_sr, save_destination.absolute())
+            waveform_clips = reshape(waveform, target_size)
+            for i, clip in enumerate(waveform_clips):
+                clip = apply_bandpass_filter(clip, target_sr, 20000, 120000)
 
 
-    # sample_rates = []
-    # data_lengths = []
-    # sample_files = list_files()
-    # img_nr = 0
-    # failed_files = 0
-    # for folder, files in sample_files.items():
-    #     print(folder)
-    #     print(len(files))
-    #     for file in files:
-    #         # if not os.path.exists(f"audio_clips/{folder}"):
-    #         #     os.makedirs(f"audio_clips/{folder}")
-    #         try:
-    #             waveform, sample_rate = torchaudio.load(file)
-    #         except Exception as e:
-    #             print("error loading file", file, e)
-    #             continue
-    #         # if sample_rate != target_sr:
-    #         waveform = resample(waveform, sample_rate, target_sr)
-    #         sample_rate = target_sr
-    #         waveform = apply_bandpass_filter(waveform, sample_rate, 20000, 120000)
-    #         clips = reshape(waveform, target_size)
-    #         # save audio clips
-    #         for waveform in clips:
+                bat_path = Path(destination_folder / bat.stem)
 
-    #             # save audio waveform with same name as before
-    #             filename = file.split("\\")[-1]
-    #             # print("filename", filename)
-    #             filepath = f"{output_data}/{folder}/{filename}"
-    #             if not os.path.exists(f"{output_data}/{folder}"):
-    #                 os.makedirs(f"{output_data}/{folder}")
-    #             try:
-    #                 torchaudio.save(filepath, waveform, sample_rate)
-    #                 img_nr += 1
-    #             except Exception as e:
-    #                 print("error saving file", filename, e)
-    #                 failed_files += 1
-    #     print("failed files", failed_files)
-    #     print("success files", img_nr)
+                clip_filename = file.stem +f"_{i}.png"
+                if not bat_path.exists():
+                    bat_path.mkdir(parents=True, exist_ok=True)
 
-
-
-#Read files
-
-
-
-#Split files
-
-
-#Save files
-
-
+                save_destination = Path( destination_folder / bat.stem / clip_filename)
+                save_mel_spectrogram(clip, target_sr, save_destination.absolute())
 
 if __name__ == "__main__":
     main()
