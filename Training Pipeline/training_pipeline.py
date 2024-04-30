@@ -91,7 +91,7 @@ for epochs in range(num_epochs):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        break
+
     total_correct = 0
     total_samples = 0
     for i, (batch, labels) in enumerate(validate_loader):
@@ -102,12 +102,10 @@ for epochs in range(num_epochs):
         _, predicted_labels = torch.max(outputs, 1)
         total_correct += (predicted_labels == labels).sum().item()
         total_samples += labels.size(0)
-        break
 
     accuracy = total_correct / total_samples
     message = 'Validation accuracy after epoch ' + str(epochs + 1) + ': ' + str(accuracy)
     print(message)
-    break
 
 total_correct = 0
 total_samples = 0
@@ -120,7 +118,6 @@ for i, (batch, labels) in enumerate(test_loader):
     total_correct += (predicted_labels == labels).sum().item()
     total_samples += labels.size(0)
     accuracy = total_correct / total_samples
-    break
 
 accuracy = total_correct / total_samples
 message = 'Final test accuracy: ' + str(accuracy)
