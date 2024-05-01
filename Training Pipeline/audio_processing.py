@@ -10,7 +10,7 @@ def exceeds_energy_threshold(waveform, absolute_threshold, max_count):
     waveform_abs = torch.abs(waveform_1d)
     # Count the number of points exceeding the absolute threshold
     exceed_count = torch.sum(waveform_abs > absolute_threshold)
-    return exceed_count >= 15
+    return exceed_count >= max_count
 
 
 def resample(signal, sr, target_sample_rate):
