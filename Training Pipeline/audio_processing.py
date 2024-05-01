@@ -14,6 +14,9 @@ def exceeds_energy_threshold(waveform, absolute_threshold, max_count):
 
 
 def resample(signal, sr, target_sample_rate):
+    if signal.size(0) > 1:  # make mono
+        print("Warning: More than one channel in the audio file. Downmixing to mono.")
+        signal = torch.mean(signal, dim=0, keepdim=True)
     resampler = torchaudio.transforms.Resample(sr, target_sample_rate)
     signal = resampler(signal)
     return signal
