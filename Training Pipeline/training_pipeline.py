@@ -95,9 +95,12 @@ optimizer = torch.optim.Adam(model.classifier.parameters(), lr=0.001)
 
 
 # Iterate over the dataloader
-num_epochs = 100
+num_epochs = 50
+print("Starting training...")
 for epochs in range(num_epochs):
+    print("training_loader.size", len(train_loader))
     for i, (batch, labels) in enumerate(train_loader):
+        # batch is 4x1x600000
         # Select the first sample from the batch
         sample = feature_extractor(
             batch.squeeze().numpy(), sampling_rate=300000, return_tensors="pt"
@@ -114,6 +117,16 @@ for epochs in range(num_epochs):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        if i % 100 == 0:
+            print(
+                "Epoch "
+                + str(epochs + 1)
+                + ", iteration "
+                + str(i)
+                + ": "
+                + str(loss.item())
+            )
+    print("Epoch " + str(epochs + 1) + " completed.")
 
     total_correct = 0
     total_samples = 0
@@ -127,12 +140,13 @@ for epochs in range(num_epochs):
             mode="bilinear",
             align_corners=False,
         )
+        print("interpolated")
         input = input.squeeze(0)
         outputs = model(input).logits
+        print("outputs")
         _, predicted_labels = torch.max(outputs, 1)
         total_correct += (predicted_labels == labels).sum().item()
         total_samples += labels.size(0)
-
     accuracy = total_correct / total_samples
     message = (
         "Validation accuracy after epoch " + str(epochs + 1) + ": " + str(accuracy)
