@@ -75,11 +75,13 @@ config.num_labels = num_classes  # Update the number of labels
 feature_extractor = transformers.ASTFeatureExtractor(
     sampling_rate=300000, mean=0, std=1, max_length=200, num_mel_bins=128
 )
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
 model = transformers.AutoModelForAudioClassification.from_pretrained(
     "MIT/ast-finetuned-audioset-10-10-0.4593",
     config=config,
     ignore_mismatched_sizes=True,
-)
+).to(device)
 
 # Freeze encoder layers
 for param in model.audio_spectrogram_transformer.encoder.parameters():
@@ -101,10 +103,13 @@ for epochs in range(num_epochs):
     print("training_loader.size", len(train_loader))
     for i, (batch, labels) in enumerate(train_loader):
         # batch is 4x1x600000
+        batch, labels = batch.to(device), labels.to(device)
         # Select the first sample from the batch
         sample = feature_extractor(
-            batch.squeeze().numpy(), sampling_rate=300000, return_tensors="pt"
-        )
+            batch.squeeze().cpu().numpy(),  # Note: Feature extractor may require CPU
+            sampling_rate=300000,
+            return_tensors="pt",
+        ).to(device)
         input = F.interpolate(
             sample["input_values"].unsqueeze(0),
             size=(1024, 128),
@@ -130,10 +135,14 @@ for epochs in range(num_epochs):
 
     total_correct = 0
     total_samples = 0
+    model.eval()  # Set model to evaluation mode
     for i, (batch, labels) in enumerate(validate_loader):
+        batch, labels = batch.to(device), labels.to(device)
         sample = feature_extractor(
-            batch.squeeze().numpy(), sampling_rate=300000, return_tensors="pt"
-        )
+            batch.squeeze().cpu().numpy(),  # Note: Feature extractor may require CPU
+            sampling_rate=300000,
+            return_tensors="pt",
+        ).to(device)
         input = F.interpolate(
             sample["input_values"].unsqueeze(0),
             size=(1024, 128),
@@ -156,9 +165,12 @@ for epochs in range(num_epochs):
 total_correct = 0
 total_samples = 0
 for i, (batch, labels) in enumerate(test_loader):
+    batch, labels = batch.to(device), labels.to(device)
     sample = feature_extractor(
-        batch.squeeze().numpy(), sampling_rate=300000, return_tensors="pt"
-    )
+        batch.squeeze().cpu().numpy(),  # Note: Feature extractor may require CPU
+        sampling_rate=300000,
+        return_tensors="pt",
+    ).to(device)
     input = F.interpolate(
         sample["input_values"].unsqueeze(0),
         size=(1024, 128),
