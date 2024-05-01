@@ -4,6 +4,8 @@ import torchaudio
 from torch.utils.data import Dataset, DataLoader, random_split
 import os
 import transformers
+from pathlib import Path
+
 
 class AudioDataSet(Dataset):
     def __init__(self, root_dir, transform=None):
@@ -22,9 +24,11 @@ class AudioDataSet(Dataset):
             # Ignore the root directory, only process subdirectories
             if dirpath != root_dir:
                 for filename in filenames:
-                    if filename.endswith('.wav'):
+                    if filename.endswith(".wav"):
                         self.filenames.append(os.path.join(dirpath, filename))
-                        self.labels.append(index - 1)  # index - 1 to start labeling from 0
+                        self.labels.append(
+                            index - 1
+                        )  # index - 1 to start labeling from 0
 
     def __len__(self):
         return len(self.filenames)
@@ -38,9 +42,11 @@ class AudioDataSet(Dataset):
             y = self.transform(y)
         return y, label
 
+
 # Create the dataset
-script_path = os.path.abspath(__file__)
-data_path = os.path.join(os.path.dirname(script_path), 'training_data')
+script_path = Path(__file__).resolve().parent
+data_path = script_path.parent.parent / "dataset" / "training_data"
+# destination_folder = script_directory / 'training_data'
 dataset = AudioDataSet(data_path)
 num_classes = len(set(dataset.labels))
 
@@ -50,7 +56,9 @@ test_size = int(total_size * 0.15)
 validate_size = total_size - train_size - test_size
 
 # Split the dataset
-train_dataset, validate_dataset, test_dataset = random_split(dataset, [train_size, validate_size, test_size])
+train_dataset, validate_dataset, test_dataset = random_split(
+    dataset, [train_size, validate_size, test_size]
+)
 
 # Create DataLoaders for each dataset
 train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
@@ -58,12 +66,20 @@ validate_loader = DataLoader(validate_dataset, batch_size=4, shuffle=False)
 test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 
 # Load the configuration of the pre-trained model
-config = transformers.AutoConfig.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593")
+config = transformers.AutoConfig.from_pretrained(
+    "MIT/ast-finetuned-audioset-10-10-0.4593"
+)
 config.num_labels = num_classes  # Update the number of labels
 
 # Load the model with the updated configuration
-feature_extractor = transformers.ASTFeatureExtractor(sampling_rate=300000, mean=0, std=1, max_length=200, num_mel_bins=128)
-model = transformers.AutoModelForAudioClassification.from_pretrained("MIT/ast-finetuned-audioset-10-10-0.4593", config=config, ignore_mismatched_sizes=True)
+feature_extractor = transformers.ASTFeatureExtractor(
+    sampling_rate=300000, mean=0, std=1, max_length=200, num_mel_bins=128
+)
+model = transformers.AutoModelForAudioClassification.from_pretrained(
+    "MIT/ast-finetuned-audioset-10-10-0.4593",
+    config=config,
+    ignore_mismatched_sizes=True,
+)
 
 # Freeze encoder layers
 for param in model.audio_spectrogram_transformer.encoder.parameters():
@@ -83,8 +99,15 @@ num_epochs = 100
 for epochs in range(num_epochs):
     for i, (batch, labels) in enumerate(train_loader):
         # Select the first sample from the batch
-        sample = feature_extractor(batch.squeeze().numpy(), sampling_rate=300000, return_tensors='pt')
-        input = F.interpolate(sample['input_values'].unsqueeze(0), size=(1024, 128), mode='bilinear', align_corners=False)
+        sample = feature_extractor(
+            batch.squeeze().numpy(), sampling_rate=300000, return_tensors="pt"
+        )
+        input = F.interpolate(
+            sample["input_values"].unsqueeze(0),
+            size=(1024, 128),
+            mode="bilinear",
+            align_corners=False,
+        )
         input = input.squeeze(0)
         logits = model(input).logits
         loss = criterion(logits, labels)
@@ -95,8 +118,15 @@ for epochs in range(num_epochs):
     total_correct = 0
     total_samples = 0
     for i, (batch, labels) in enumerate(validate_loader):
-        sample = feature_extractor(batch.squeeze().numpy(), sampling_rate=300000, return_tensors='pt')
-        input = F.interpolate(sample['input_values'].unsqueeze(0), size=(1024, 128), mode='bilinear', align_corners=False)
+        sample = feature_extractor(
+            batch.squeeze().numpy(), sampling_rate=300000, return_tensors="pt"
+        )
+        input = F.interpolate(
+            sample["input_values"].unsqueeze(0),
+            size=(1024, 128),
+            mode="bilinear",
+            align_corners=False,
+        )
         input = input.squeeze(0)
         outputs = model(input).logits
         _, predicted_labels = torch.max(outputs, 1)
@@ -104,14 +134,23 @@ for epochs in range(num_epochs):
         total_samples += labels.size(0)
 
     accuracy = total_correct / total_samples
-    message = 'Validation accuracy after epoch ' + str(epochs + 1) + ': ' + str(accuracy)
+    message = (
+        "Validation accuracy after epoch " + str(epochs + 1) + ": " + str(accuracy)
+    )
     print(message)
 
 total_correct = 0
 total_samples = 0
 for i, (batch, labels) in enumerate(test_loader):
-    sample = feature_extractor(batch.squeeze().numpy(), sampling_rate=300000, return_tensors='pt')
-    input = F.interpolate(sample['input_values'].unsqueeze(0), size=(1024, 128), mode='bilinear', align_corners=False)
+    sample = feature_extractor(
+        batch.squeeze().numpy(), sampling_rate=300000, return_tensors="pt"
+    )
+    input = F.interpolate(
+        sample["input_values"].unsqueeze(0),
+        size=(1024, 128),
+        mode="bilinear",
+        align_corners=False,
+    )
     input = input.squeeze(0)
     outputs = model(input).logits
     _, predicted_labels = torch.max(outputs, 1)
@@ -120,6 +159,5 @@ for i, (batch, labels) in enumerate(test_loader):
     accuracy = total_correct / total_samples
 
 accuracy = total_correct / total_samples
-message = 'Final test accuracy: ' + str(accuracy)
+message = "Final test accuracy: " + str(accuracy)
 print(message)
-    
