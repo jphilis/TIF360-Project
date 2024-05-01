@@ -5,19 +5,12 @@ import torchaudio
 
 
 def exceeds_energy_threshold(waveform, absolute_threshold, max_count):
-
     waveform_1d = waveform[0] if waveform.dim() > 1 else waveform
-
     # Take the absolute value of the waveform
     waveform_abs = torch.abs(waveform_1d)
-
     # Count the number of points exceeding the absolute threshold
     exceed_count = torch.sum(waveform_abs > absolute_threshold)
-
-    if exceed_count >= 15:
-        return True
-    else:
-        return False
+    return exceed_count >= 15
 
 
 def resample(signal, sr, target_sample_rate):
