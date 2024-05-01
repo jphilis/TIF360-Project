@@ -4,8 +4,7 @@ import torchaudio
 import torchaudio
 
 
-def exceeds_energy_threshold(waveform):
-    absolute_threshold = 0.0035
+def exceeds_energy_threshold(waveform, absolute_threshold, max_count):
 
     waveform_1d = waveform[0] if waveform.dim() > 1 else waveform
 
@@ -68,18 +67,26 @@ def apply_bandpass_filter(waveform, sample_rate, low_freq, high_freq):
 
 
 def main():
-
-    '''parser = argparse.ArgumentParser(description="")
+    """parser = argparse.ArgumentParser(description="")
     parser.add_argument("input_folder", help="Path to the input folder")
     parser.add_argument("destination_folder", help="Path to the destination folder")
-    args = parser.parse_args()'''
+    args = parser.parse_args()"""
+    target_sr = 300000  # parameter, may be changed
+    target_size = 2 * target_sr  # parameter, may be changed
+    low_freq = 20000
+    high_freq = 120000
 
-    
+    # for noise/no noise
+    absolute_threshold = 0.0035
+    max_count = 15
+
     script_directory = Path(__file__).resolve().parent
 
     # Define input folder and destination folder paths (relative to the script directory)
-    input_folder = script_directory.parent / 'data' / 'chirovox' / 'all'
-    destination_folder = script_directory / 'training_data'
+    # input_folder = script_directory.parent / 'data' / 'chirovox' / 'all' #github data
+    input_folder = script_directory.parent.parent / "dataset" / "labeled_dataset"
+    # destination_folder = script_directory / 'training_data'
+    destination_folder = script_directory.parent.parent / "dataset" / "training_data"
 
     # Print the absolute paths of the input folder and destination folder
     print(f"\n\nInput folder: {input_folder.resolve()}")
@@ -89,34 +96,30 @@ def main():
         print("Exiting...")
         return
 
-    target_sr = 300000  # parameter, may be changed
-    target_size = 2 * target_sr  # parameter, may be changed
-
-    #Iterate thorough all folders
+    # Iterate thorough all folders
 
     for bat in input_folder.iterdir():
         for file in bat.iterdir():
             waveform, sample_rate = torchaudio.load(file.absolute())
-
             waveform = resample(waveform, sample_rate, target_sr)
-
             waveform_clips = reshape(waveform, target_size)
             for i, clip in enumerate(waveform_clips):
-                clip = apply_bandpass_filter(clip, target_sr, 20000, 120000)
+                clip = apply_bandpass_filter(clip, target_sr, low_freq, high_freq)
 
-                if exceeds_energy_threshold(clip):
+                if exceeds_energy_threshold(clip, absolute_threshold, max_count):
                     bat_path = Path(destination_folder / bat.stem)
                     if not bat_path.exists():
                         bat_path.mkdir(parents=True, exist_ok=True)
                 else:
-                    path = 'noise'
+                    path = "noise"
                     bat_path = Path(destination_folder / path)
                     if not bat_path.exists():
                         bat_path.mkdir(parents=True, exist_ok=True)
 
-                clip_filename = file.stem +f"_{i}.wav"
+                clip_filename = file.stem + f"_{i}.wav"
                 save_destination = Path(bat_path / clip_filename)
                 torchaudio.save(uri=save_destination, src=clip, sample_rate=target_sr)
+
 
 if __name__ == "__main__":
     main()
