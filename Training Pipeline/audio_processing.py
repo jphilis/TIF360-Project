@@ -97,10 +97,16 @@ def main():
         return
 
     # Iterate thorough all folders
+    error_files = []
 
     for bat in input_folder.iterdir():
         for file in bat.iterdir():
-            waveform, sample_rate = torchaudio.load(file.absolute())
+            try:
+                waveform, sample_rate = torchaudio.load(file.absolute())
+            except Exception as e:
+                print("Error loading file: ", file)
+                error_files.append(file)
+                continue
             waveform = resample(waveform, sample_rate, target_sr)
             waveform_clips = reshape(waveform, target_size)
             for i, clip in enumerate(waveform_clips):
@@ -108,17 +114,19 @@ def main():
 
                 if exceeds_energy_threshold(clip, absolute_threshold, max_count):
                     bat_path = Path(destination_folder / bat.stem)
-                    if not bat_path.exists():
-                        bat_path.mkdir(parents=True, exist_ok=True)
                 else:
                     path = "noise"
                     bat_path = Path(destination_folder / path)
-                    if not bat_path.exists():
-                        bat_path.mkdir(parents=True, exist_ok=True)
-
-                clip_filename = file.stem + f"_{i}.wav"
+                if not bat_path.exists():
+                    bat_path.mkdir(parents=True, exist_ok=True)
+                clip_filename = f"{file.stem}_{i}.wav"
                 save_destination = Path(bat_path / clip_filename)
-                torchaudio.save(uri=save_destination, src=clip, sample_rate=target_sr)
+                try:
+                    torchaudio.save(uri=save_destination, src=clip, sample_rate=target_sr)
+                except Exception as e:
+                    print("Error saving file (part of clip): ", save_destination)
+                    error_files.append(save_destination)
+                    continue
 
 
 if __name__ == "__main__":
