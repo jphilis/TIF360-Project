@@ -122,11 +122,14 @@ def main():
                 clip_filename = f"{file.stem}_{i}.wav"
                 save_destination = Path(bat_path / clip_filename)
                 try:
-                    torchaudio.save(uri=save_destination, src=clip, sample_rate=target_sr)
+                    torchaudio.save(
+                        uri=save_destination, src=clip, sample_rate=target_sr
+                    )
                 except Exception as e:
                     print("Error saving file (part of clip): ", save_destination)
                     error_files.append(save_destination)
                     continue
+    print("Error files: ", error_files)
 
 
 if __name__ == "__main__":
