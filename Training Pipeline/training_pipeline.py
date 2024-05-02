@@ -7,6 +7,7 @@ import transformers
 from pathlib import Path
 import torchaudio.transforms as ta_transforms
 import torchvision.transforms.v2 as tv_transforms
+import copy
 
 
 class AudioDataSet(Dataset):
@@ -20,6 +21,22 @@ class AudioDataSet(Dataset):
         self.transform = transform
         self.filenames = []
         self.labels = []
+
+        if transform is None:
+            self.transform = tv_transforms.Compose(
+                [
+                    ta_transforms.MelSpectrogram(
+                        sample_rate=300000,
+                        n_mels=128,
+                        f_max=120000,
+                        f_min=20000,
+                        normalized=True,
+                    ),
+                    tv_transforms.Lambda(lambda img: img.transpose(1, 2)),
+                    tv_transforms.Resize((1024, 128)),
+                ]
+            )
+
 
         # Walk through the root directory to get subdirectories
         for index, (dirpath, dirnames, filenames) in enumerate(os.walk(root_dir)):
@@ -45,7 +62,7 @@ class AudioDataSet(Dataset):
         return y, label
 
 
-def augment_dataset(data_path, augmentations=["Normal"]) -> ConcatDataset:
+def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
     number_of_FM = 3
     number_of_TM = 10
 
@@ -78,10 +95,13 @@ def augment_dataset(data_path, augmentations=["Normal"]) -> ConcatDataset:
         + [transposed, resized]
     )
 
-    dataset = AudioDataSet(data_path, transform=transform)
-    dataset_FM = AudioDataSet(data_path, transform=transform_FM)
-    dataset_TM = AudioDataSet(data_path, transform=transform_TM)
-    dataset_FTM = AudioDataSet(data_path, transform=transform_FTM)
+    dataset_FM = copy.deepcopy(dataset)
+    dataset_TM = copy.deepcopy(dataset)
+    dataset_FTM = copy.deepcopy(dataset)
+    
+    dataset_FM.transform = transform_FM
+    dataset_TM.transform = transform_TM
+    dataset_FTM.transform = transform_FTM
 
     augmentation_list = {
         "Normal": dataset,
@@ -91,7 +111,6 @@ def augment_dataset(data_path, augmentations=["Normal"]) -> ConcatDataset:
     }
 
     combined_dataset = ConcatDataset([augmentation_list[aug] for aug in augmentations])
-    combined_dataset.labels = dataset.labels
 
     return combined_dataset
 
@@ -100,19 +119,21 @@ def augment_dataset(data_path, augmentations=["Normal"]) -> ConcatDataset:
 script_path = Path(__file__).resolve().parent
 data_path = os.path.join(script_path, "training_data")
 
-dataset = augment_dataset(data_path, augmentations=["Normal", "FM", "TM", "FTM"])
+dataset = AudioDataSet(data_path)
 
 num_classes = len(set(dataset.labels))
 
 total_size = len(dataset)
-train_size = int(total_size * 0.7)
-test_size = int(total_size * 0.15)
+train_size = int(total_size * 0.8)
+test_size = int(total_size * 0.1)
 validate_size = total_size - train_size - test_size
 
 # Split the dataset
 train_dataset, validate_dataset, test_dataset = random_split(
     dataset, [train_size, validate_size, test_size]
 )
+
+train_dataset = augment_dataset(train_dataset, augmentations=["Normal", "FM", "TM", "FTM"])
 
 # Create DataLoaders for each dataset
 train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
@@ -153,6 +174,7 @@ for epochs in range(num_epochs):
     print("training_loader.size", len(train_loader))
     for i, (batch, labels) in enumerate(train_loader):
         # batch is 4x1x600000
+        model.train()  # Set model to training mode
         batch, labels = batch.to(device), labels.to(device)
         # Select the first sample from the batch
 
@@ -176,13 +198,24 @@ for epochs in range(num_epochs):
     total_correct = 0
     total_samples = 0
     model.eval()  # Set model to evaluation mode
+    print("Validating..., validate_loader.size", len(validate_loader))
     for i, (batch, labels) in enumerate(validate_loader):
+
         batch, labels = batch.to(device), labels.to(device)
         input = batch.squeeze()
         outputs = model(input).logits
         _, predicted_labels = torch.max(outputs, 1)
         total_correct += (predicted_labels == labels).sum().item()
         total_samples += labels.size(0)
+        if i % 100 == 0:
+            print(
+                "Epoch "
+                + str(epochs + 1)
+                + ", iteration "
+                + str(i)
+                + ": "
+                + str(loss.item())
+            )
     accuracy = total_correct / total_samples
     message = (
         "Validation accuracy after epoch " + str(epochs + 1) + ": " + str(accuracy)

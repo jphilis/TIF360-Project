@@ -1,4 +1,5 @@
 from pathlib import Path
+import numpy as np
 import torch
 import torchaudio
 import torchaudio
@@ -94,9 +95,21 @@ def main():
 
     # Iterate thorough all folders
     error_files = []
+    np.random.seed(42)
 
     for bat in input_folder.iterdir():
+
         for file in bat.iterdir():
+
+            r = np.random.rand()
+
+            if r < 0.8:
+                destination_folder = destination_folder / "train"
+            elif r < 0.9:
+                destination_folder = destination_folder / "validate"
+            else:
+                destination_folder = destination_folder / "test"
+
             try:
                 waveform, sample_rate = torchaudio.load(file.absolute())
             except Exception as e:
