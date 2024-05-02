@@ -47,18 +47,25 @@ class AudioDataSet(Dataset):
 script_path = Path(__file__).resolve().parent
 data_path = script_path.parent.parent / "dataset" / "training_data"
 # destination_folder = script_directory / 'training_data'
-dataset = AudioDataSet(data_path)
-num_classes = len(set(dataset.labels))
 
-total_size = len(dataset)
-train_size = int(total_size * 0.8)
-test_size = int(total_size * 0.1)
-validate_size = total_size - train_size - test_size
 
-# Split the dataset
-train_dataset, validate_dataset, test_dataset = random_split(
-    dataset, [train_size, validate_size, test_size]
-)
+train_dataset = AudioDataSet(data_path / "train")
+validate_dataset = AudioDataSet(data_path / "validate")
+test_dataset = AudioDataSet(data_path / "test")
+
+
+# dataset = AudioDataSet(data_path)
+num_classes = len(set(train_dataset.labels))
+
+# total_size = len(dataset)
+# train_size = int(total_size * 0.8)
+# test_size = int(total_size * 0.1)
+# validate_size = total_size - train_size - test_size
+
+# # Split the dataset
+# train_dataset, validate_dataset, test_dataset = random_split(
+#     dataset, [train_size, validate_size, test_size]
+# )
 
 # Create DataLoaders for each dataset
 train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
