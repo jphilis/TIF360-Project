@@ -83,11 +83,13 @@ def main():
     # input_folder = script_directory.parent / 'data' / 'chirovox' / 'all' #github data
     input_folder = script_directory.parent.parent / "dataset" / "labeled_dataset"
     # destination_folder = script_directory / 'training_data'
-    destination_folder = script_directory.parent.parent / "dataset" / "training_data"
+    orig_destination_folder = (
+        script_directory.parent.parent / "dataset" / "training_data"
+    )
 
     # Print the absolute paths of the input folder and destination folder
     print(f"\n\nInput folder: {input_folder.resolve()}")
-    print(f"Destination folder: {destination_folder.resolve()}")
+    print(f"Destination folder: {orig_destination_folder.resolve()}")
     i = input("Continue? y/n \n")
     if i.lower() != "y":
         print("Exiting...")
@@ -104,11 +106,11 @@ def main():
             r = np.random.rand()
 
             if r < 0.8:
-                destination_folder = destination_folder / "train"
+                destination_folder = orig_destination_folder / "train"
             elif r < 0.9:
-                destination_folder = destination_folder / "validate"
+                destination_folder = orig_destination_folder / "validate"
             else:
-                destination_folder = destination_folder / "test"
+                destination_folder = orig_destination_folder / "test"
 
             try:
                 waveform, sample_rate = torchaudio.load(file.absolute())
@@ -120,7 +122,6 @@ def main():
             waveform_clips = reshape(waveform, target_size)
             for i, clip in enumerate(waveform_clips):
                 clip = apply_bandpass_filter(clip, target_sr, low_freq, high_freq)
-
                 if exceeds_energy_threshold(clip, absolute_threshold, max_count):
                     bat_path = Path(destination_folder / bat.stem)
                 else:
@@ -130,14 +131,12 @@ def main():
                     bat_path.mkdir(parents=True, exist_ok=True)
                 clip_filename = f"{file.stem}_{i}.wav"
                 save_destination = Path(bat_path / clip_filename)
-                try:
-                    torchaudio.save(
-                        uri=save_destination, src=clip, sample_rate=target_sr
-                    )
-                except Exception as e:
-                    print("Error saving file (part of clip): ", save_destination)
-                    error_files.append(save_destination)
-                    continue
+                # try:
+                torchaudio.save(uri=save_destination, src=clip, sample_rate=target_sr)
+                # except Exception as e:
+                #     print("Error saving file (part of clip): ", save_destination)
+                #     error_files.append(save_destination)
+                #     continue
     print("Error files: ", error_files)
 
 
