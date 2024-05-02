@@ -33,30 +33,28 @@ def visualize_raw_data(data_path: Path):
         sizes.append(size)
         for dataset in dataset_files.keys():
             files = list(bat_class.glob(f"*{dataset}.wav"))
-            print(files)
+            # print(files)
             file_sizes = sum([f.stat().st_size / (10**9) for f in files])
             dataset_files[dataset].append(file_sizes)
 
 
-    print(dataset_files)
+    # print(dataset_files)
 
     for dataset, sizes in dataset_files.items():
         hbars = ax.barh(y_pos, sizes, align='center', label=dataset)
-        ax.bar_label(hbars, fmt='%.3f GB')
+        # ax.bar_label(hbars, fmt='%.3f GB')
 
 
 
     # hbars = ax.barh(y_pos, sizes, align='center', label="Raw data")
     ax.set_yticks(y_pos, labels=class_names)
 
-    ax.invert_yaxis()  # labels read top-to-bottom
-    ax.bar_label(hbars, fmt='%.3f GB')
-    # ax.set_xlim(right=30)
+    ax.invert_yaxis()
+    ax.legend()
     ax.set_ylabel('Class')
     ax.set_xlabel('Size in GB')
     ax.set_title('Size of data per class')
     fig.tight_layout()
-    # ax.grid(False)
     plt.show()
 
 
