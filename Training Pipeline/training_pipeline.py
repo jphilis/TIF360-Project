@@ -8,6 +8,14 @@ from pathlib import Path
 import torchaudio.transforms as ta_transforms
 import torchvision.transforms.v2 as tv_transforms
 import copy
+import datetime
+
+try:
+    import wandb
+
+    use_wandb = True
+except ImportError:
+    use_wandb = False
 
 
 class AudioDataSet(Dataset):
@@ -36,7 +44,6 @@ class AudioDataSet(Dataset):
                     tv_transforms.Resize((1024, 128)),
                 ]
             )
-
 
         # Walk through the root directory to get subdirectories
         for index, (dirpath, dirnames, filenames) in enumerate(os.walk(root_dir)):
@@ -98,7 +105,7 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
     dataset_FM = copy.deepcopy(dataset)
     dataset_TM = copy.deepcopy(dataset)
     dataset_FTM = copy.deepcopy(dataset)
-    
+
     dataset_FM.transform = transform_FM
     dataset_TM.transform = transform_TM
     dataset_FTM.transform = transform_FTM
@@ -117,28 +124,37 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
 
 # Create the dataset
 script_path = Path(__file__).resolve().parent
-data_path = os.path.join(script_path, "training_data")
+# data_path = os.path.join(script_path, "training_data")
+data_path = script_path.parent.parent / "dataset" / "training_data"
 
-dataset = AudioDataSet(data_path)
 
-num_classes = len(set(dataset.labels))
+train_dataset = AudioDataSet(data_path / "train")
+validate_dataset = AudioDataSet(data_path / "validate")
+test_dataset = AudioDataSet(data_path / "test")
 
-total_size = len(dataset)
-train_size = int(total_size * 0.8)
-test_size = int(total_size * 0.1)
-validate_size = total_size - train_size - test_size
+# dataset = AudioDataSet(data_path / "train")
+
+num_classes = len(os.listdir(data_path / "train"))
+print("Number of classes:", num_classes)
+# total_size = len(dataset)
+# train_size = int(total_size * 0.8)
+# test_size = int(total_size * 0.1)
+# validate_size = total_size - train_size - test_size
 
 # Split the dataset
-train_dataset, validate_dataset, test_dataset = random_split(
-    dataset, [train_size, validate_size, test_size]
+# train_dataset, validate_dataset, test_dataset = random_split(
+#     dataset, [train_size, validate_size, test_size]
+# )
+
+
+train_dataset = augment_dataset(
+    train_dataset, augmentations=["Normal", "FM", "TM", "FTM"]
 )
 
-train_dataset = augment_dataset(train_dataset, augmentations=["Normal", "FM", "TM", "FTM"])
-
 # Create DataLoaders for each dataset
-train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
-validate_loader = DataLoader(validate_dataset, batch_size=4, shuffle=False)
-test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
+train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
+validate_loader = DataLoader(validate_dataset, batch_size=8, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False)
 
 # Load the configuration of the pre-trained model
 config = transformers.AutoConfig.from_pretrained(
@@ -167,24 +183,31 @@ criterion = torch.nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.classifier.parameters(), lr=0.001)
 
 
+if use_wandb:
+    wandb.init(project="TIF360", entity="jonatca")
 # Iterate over the dataloader
 num_epochs = 50
 print("Starting training...")
+best_loss = 1000
 for epochs in range(num_epochs):
     print("training_loader.size", len(train_loader))
+    total_loss = 0
+    model.train()  # Set model to training mode
     for i, (batch, labels) in enumerate(train_loader):
-        # batch is 4x1x600000
-        model.train()  # Set model to training mode
         batch, labels = batch.to(device), labels.to(device)
         # Select the first sample from the batch
-
         input = batch.squeeze()
+        if len(input.size()) != 3:
+            print("something wrong with dimentions here")
+            print("input.size", input.size())
+            continue
         logits = model(input).logits
         loss = criterion(logits, labels)
+        total_loss += loss.item()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        if i % 100 == 0:
+        if i % 1000 == 0:
             print(
                 "Epoch "
                 + str(epochs + 1)
@@ -193,23 +216,34 @@ for epochs in range(num_epochs):
                 + ": "
                 + str(loss.item())
             )
-    print("Epoch " + str(epochs + 1) + " completed.")
-
+    avg_loss = total_loss / len(train_loader)
+    if use_wandb:
+        wandb.log({"train_loss": avg_loss, "epoch": epochs + 1})
+    time_of_day = datetime.datetime.now().strftime("%H:%M:%S")
+    # print(f"{time_of_day} Epoch " + str(epochs + 1) + " avg loss: ", avg_loss)
     total_correct = 0
     total_samples = 0
     model.eval()  # Set model to evaluation mode
     print("Validating..., validate_loader.size", len(validate_loader))
+    tot_val_loss = 0
     for i, (batch, labels) in enumerate(validate_loader):
-
         batch, labels = batch.to(device), labels.to(device)
+
         input = batch.squeeze()
+        if len(input.size()) != 3:
+            print("WARNING something wrong with dimentions here")
+            print("input.size", input.size())
+            continue
         outputs = model(input).logits
         _, predicted_labels = torch.max(outputs, 1)
         total_correct += (predicted_labels == labels).sum().item()
         total_samples += labels.size(0)
-        if i % 100 == 0:
+        loss = criterion(outputs, labels)
+        tot_val_loss += loss.item()
+        if i % 1000 == 0:
+            time_of_day = datetime.datetime.now().strftime("%H:%M:%S")
             print(
-                "Epoch "
+                f"{time_of_day} Epoch "
                 + str(epochs + 1)
                 + ", iteration "
                 + str(i)
@@ -217,10 +251,24 @@ for epochs in range(num_epochs):
                 + str(loss.item())
             )
     accuracy = total_correct / total_samples
+    loss = tot_val_loss / len(validate_loader)
+    if use_wandb:
+        wandb.log(
+            {
+                "validation_accuracy": accuracy,
+                "epoch": epochs + 1,
+                "validation_loss": loss,
+            },
+        )
     message = (
         "Validation accuracy after epoch " + str(epochs + 1) + ": " + str(accuracy)
     )
+    if loss < best_loss:
+        best_loss = loss
+        torch.save(model.state_dict(), f"best_model_loss_{los}.pth")
+        message += " (model saved)"
     print(message)
+
 
 total_correct = 0
 total_samples = 0

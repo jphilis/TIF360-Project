@@ -2,3 +2,5 @@ data/chirovox
 combined_dataset/
 *.png
 training_data/
+wandb/
+*.pth
