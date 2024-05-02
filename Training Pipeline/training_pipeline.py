@@ -1,10 +1,12 @@
 import torch
 import torch.nn.functional as F
 import torchaudio
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader, random_split, ConcatDataset
 import os
 import transformers
 from pathlib import Path
+import torchaudio.transforms as ta_transforms
+import torchvision.transforms.v2 as tv_transforms
 
 
 class AudioDataSet(Dataset):
@@ -43,11 +45,63 @@ class AudioDataSet(Dataset):
         return y, label
 
 
+def augment_dataset(data_path, augmentations=["Normal"]) -> ConcatDataset:
+    number_of_FM = 3
+    number_of_TM = 10
+
+    spectrogramed = ta_transforms.MelSpectrogram(
+        sample_rate=300000, n_mels=128, f_max=120000, f_min=20000, normalized=True
+    )
+    transposed = tv_transforms.Lambda(lambda img: img.transpose(1, 2))
+    resized = tv_transforms.Resize((1024, 128))
+    frequency_masked = ta_transforms.FrequencyMasking(freq_mask_param=10)
+    time_masked = ta_transforms.TimeMasking(time_mask_param=40)
+
+    transform = tv_transforms.Compose([spectrogramed, transposed, resized])
+
+    transform_FM = tv_transforms.Compose(
+        [spectrogramed]
+        + [frequency_masked for _ in range(number_of_FM)]
+        + [transposed, resized]
+    )
+
+    transform_TM = tv_transforms.Compose(
+        [spectrogramed]
+        + [time_masked for _ in range(number_of_TM)]
+        + [transposed, resized]
+    )
+
+    transform_FTM = tv_transforms.Compose(
+        [spectrogramed]
+        + [frequency_masked for _ in range(number_of_FM)]
+        + [time_masked for _ in range(number_of_TM)]
+        + [transposed, resized]
+    )
+
+    dataset = AudioDataSet(data_path, transform=transform)
+    dataset_FM = AudioDataSet(data_path, transform=transform_FM)
+    dataset_TM = AudioDataSet(data_path, transform=transform_TM)
+    dataset_FTM = AudioDataSet(data_path, transform=transform_FTM)
+
+    augmentation_list = {
+        "Normal": dataset,
+        "FM": dataset_FM,
+        "TM": dataset_TM,
+        "FTM": dataset_FTM,
+    }
+
+    combined_dataset = ConcatDataset([augmentation_list[aug] for aug in augmentations])
+    combined_dataset.labels = dataset.labels
+
+    return combined_dataset
+
+
 # Create the dataset
 script_path = Path(__file__).resolve().parent
-data_path = script_path.parent.parent / "dataset" / "training_data"
-# destination_folder = script_directory / 'training_data'
-dataset = AudioDataSet(data_path)
+data_path = os.path.join(script_path, "training_data")
+
+dataset = augment_dataset(data_path, augmentations=["Normal", "FM", "TM", "FTM"])
+
 num_classes = len(set(dataset.labels))
 
 total_size = len(dataset)
@@ -71,10 +125,6 @@ config = transformers.AutoConfig.from_pretrained(
 )
 config.num_labels = num_classes  # Update the number of labels
 
-# Load the model with the updated configuration
-feature_extractor = transformers.ASTFeatureExtractor(
-    sampling_rate=300000, mean=0, std=1, max_length=200, num_mel_bins=128
-)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 model = transformers.AutoModelForAudioClassification.from_pretrained(
@@ -105,18 +155,8 @@ for epochs in range(num_epochs):
         # batch is 4x1x600000
         batch, labels = batch.to(device), labels.to(device)
         # Select the first sample from the batch
-        sample = feature_extractor(
-            batch.squeeze().cpu().numpy(),  # Note: Feature extractor may require CPU
-            sampling_rate=300000,
-            return_tensors="pt",
-        ).to(device)
-        input = F.interpolate(
-            sample["input_values"].unsqueeze(0),
-            size=(1024, 128),
-            mode="bilinear",
-            align_corners=False,
-        )
-        input = input.squeeze(0)
+
+        input = batch.squeeze()
         logits = model(input).logits
         loss = criterion(logits, labels)
         optimizer.zero_grad()
@@ -138,21 +178,8 @@ for epochs in range(num_epochs):
     model.eval()  # Set model to evaluation mode
     for i, (batch, labels) in enumerate(validate_loader):
         batch, labels = batch.to(device), labels.to(device)
-        sample = feature_extractor(
-            batch.squeeze().cpu().numpy(),  # Note: Feature extractor may require CPU
-            sampling_rate=300000,
-            return_tensors="pt",
-        ).to(device)
-        input = F.interpolate(
-            sample["input_values"].unsqueeze(0),
-            size=(1024, 128),
-            mode="bilinear",
-            align_corners=False,
-        )
-        print("interpolated")
-        input = input.squeeze(0)
+        input = batch.squeeze()
         outputs = model(input).logits
-        print("outputs")
         _, predicted_labels = torch.max(outputs, 1)
         total_correct += (predicted_labels == labels).sum().item()
         total_samples += labels.size(0)
@@ -166,18 +193,7 @@ total_correct = 0
 total_samples = 0
 for i, (batch, labels) in enumerate(test_loader):
     batch, labels = batch.to(device), labels.to(device)
-    sample = feature_extractor(
-        batch.squeeze().cpu().numpy(),  # Note: Feature extractor may require CPU
-        sampling_rate=300000,
-        return_tensors="pt",
-    ).to(device)
-    input = F.interpolate(
-        sample["input_values"].unsqueeze(0),
-        size=(1024, 128),
-        mode="bilinear",
-        align_corners=False,
-    )
-    input = input.squeeze(0)
+    input = batch.squeeze()
     outputs = model(input).logits
     _, predicted_labels = torch.max(outputs, 1)
     total_correct += (predicted_labels == labels).sum().item()

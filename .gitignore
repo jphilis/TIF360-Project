@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 data/chirovox
 combined_dataset/
 *.png
-=======
-data
-combined_dataset/
->>>>>>> 986c22b09fc1a8d4e68438a71534e27c18c28e86
+training_data/
