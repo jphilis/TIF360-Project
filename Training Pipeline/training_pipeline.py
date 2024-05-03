@@ -265,7 +265,7 @@ for epochs in range(num_epochs):
     )
     if loss < best_loss:
         best_loss = loss
-        torch.save(model.state_dict(), f"best_model_loss_{los}.pth")
+        torch.save(model.state_dict(), f"best_model_loss_{loss}.pth")
         message += " (model saved)"
     print(message)
 
