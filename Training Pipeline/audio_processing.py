@@ -106,7 +106,8 @@ def main():
         files = list(bat.glob("**/*"))
         total_size = sum(f.stat().st_size for f in files if f.is_file())
         if total_size > data_size_gb * 1e9:
-            sample_size = 1  # int(data_size_gb * 1e9 / 1000)
+            mean_size = total_size / len(files)
+            sample_size = int(data_size_gb / mean_size)
             files = np.random.choice(files, sample_size, replace=False)
 
         for file in files:
