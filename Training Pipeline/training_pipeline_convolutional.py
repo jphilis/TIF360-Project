@@ -183,7 +183,8 @@ model = CNN(num_classes, pretrained_model).to(device)
 
 criterion = torch.nn.CrossEntropyLoss()
 
-optimizer = torch.optim.Adam(model.classifier.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
 
 if use_wandb:
     wandb.init(project="TIF360", entity="jonatca")
