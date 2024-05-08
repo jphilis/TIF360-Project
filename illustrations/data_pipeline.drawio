@@ -1,0 +1,65 @@
+<mxfile host="app.diagrams.net" modified="2024-05-08T13:00:47.937Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 Edg/124.0.0.0" etag="LJ0hHYuJ6BnWS5KGvGJ8" version="23.0.1" type="device">
+  <diagram name="Sida-1" id="VzATbEciwXu34aYBLQ-O">
+    <mxGraphModel dx="1063" dy="694" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="C7WN4osDV7OSCckUP1fg-30" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="C7WN4osDV7OSCckUP1fg-22" target="C7WN4osDV7OSCckUP1fg-25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-22" value="&lt;h3&gt;Collection&lt;/h3&gt;&lt;div&gt;Recordings of bat echolocation from multiple sources totaling ~75GB of audio files.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="60" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="C7WN4osDV7OSCckUP1fg-25" target="C7WN4osDV7OSCckUP1fg-26">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-25" value="&lt;h3&gt;Unification&lt;/h3&gt;&lt;div&gt;Data from different sources was merged and the data distribution between classes was unified.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="324" y="60" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C7WN4osDV7OSCckUP1fg-26" target="C7WN4osDV7OSCckUP1fg-27">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="715" y="200" />
+              <mxPoint x="125" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-26" value="&lt;h3&gt;Resampling&lt;/h3&gt;&lt;div&gt;Audio files were resampled to the target sampling rate of 300,000Hz.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="630" y="60" width="170" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-33" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="C7WN4osDV7OSCckUP1fg-27" target="C7WN4osDV7OSCckUP1fg-28">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-27" value="&lt;h3&gt;Reshaping and splitting&lt;/h3&gt;&lt;div&gt;Length of clips were split into 1 second clips by cutting or padding with silence.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="35" y="260" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-34" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="C7WN4osDV7OSCckUP1fg-28" target="C7WN4osDV7OSCckUP1fg-29">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-28" value="&lt;h3&gt;Filter noise&lt;/h3&gt;&lt;div&gt;Band pass filters were applied to filter out noise in the clips.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="324" y="260" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-38" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="C7WN4osDV7OSCckUP1fg-29" target="C7WN4osDV7OSCckUP1fg-35">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="715" y="400" />
+              <mxPoint x="125" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-29" value="&lt;h3&gt;Filter noise&lt;/h3&gt;&lt;div&gt;Band pass filters were applied to filter out noise in the clips.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="625" y="260" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-37" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="C7WN4osDV7OSCckUP1fg-35" target="C7WN4osDV7OSCckUP1fg-36">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-35" value="&lt;h3&gt;Silence?&lt;/h3&gt;&lt;div&gt;Clips wich only contained silence were filtered out by looking at overall volume in the clips.&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="35" y="460" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="C7WN4osDV7OSCckUP1fg-36" value="&lt;h1&gt;Processed data&lt;/h1&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="336" y="470" width="156" height="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
