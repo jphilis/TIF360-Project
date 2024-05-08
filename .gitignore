@@ -1,4 +1,4 @@
-data/chirovox
+data/
 combined_dataset/
 *.png
 training_data/
