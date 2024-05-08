@@ -175,8 +175,6 @@ pretrained_model = torchvision.models.vgg16(torchvision.models.VGG16_Weights.DEF
 for param in pretrained_model.features.parameters():
     param.requires_grad = False
 
-model = CNN(num_classes, pretrained_model)
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 model = CNN(num_classes, pretrained_model).to(device)
@@ -200,6 +198,7 @@ for epochs in range(num_epochs):
         batch, labels = batch.to(device), labels.to(device)
         # Select the first sample from the batch
         input = batch.squeeze()
+        input = torch.transpose(input, 0, 1)
         if len(input.size()) != 3:
             print("something wrong with dimentions here")
             print("input.size", input.size())
