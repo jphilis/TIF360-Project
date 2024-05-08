@@ -140,6 +140,7 @@ class CNN(torch.nn.Module):
 script_path = Path(__file__).resolve().parent
 # data_path = os.path.join(script_path, "training_data")
 data_path = script_path.parent.parent / "dataset" / "training_data"
+#data_path = script_path / "training_data"
 
 
 train_dataset = AudioDataSet(data_path / "train")
@@ -197,13 +198,12 @@ for epochs in range(num_epochs):
     for i, (batch, labels) in enumerate(train_loader):
         batch, labels = batch.to(device), labels.to(device)
         # Select the first sample from the batch
-        input = batch.squeeze()
-        input = torch.transpose(input, 0, 1)
-        if len(input.size()) != 3:
+        input = batch
+        if len(input.size()) != 4:
             print("something wrong with dimentions here")
             print("input.size", input.size())
             continue
-        logits = model(input).logits
+        logits = model(input)
         loss = criterion(logits, labels)
         total_loss += loss.item()
         optimizer.zero_grad()
