@@ -140,19 +140,19 @@ num_classes = len(os.listdir(data_path / "train"))
 class_names = [p.stem for p in Path(data_path / "train").glob("*")]
 print("Number of classes:", num_classes)
 # total_size = len(dataset)
-# train_size = int(total_size * 0.8)
-# test_size = int(total_size * 0.1)
+# train_size = int(total_size * 0.01)
+# test_size = int(total_size * 0.98)
 # validate_size = total_size - train_size - test_size
-
-# Split the dataset
+#
+# split the dataset
 # train_dataset, validate_dataset, test_dataset = random_split(
 #     dataset, [train_size, validate_size, test_size]
 # )
 
 
-train_dataset = augment_dataset(
-    train_dataset, augmentations=["Normal", "FM", "TM", "FTM"]
-)
+# train_dataset = augment_dataset(
+#     train_dataset, augmentations=["Normal", "FM", "TM", "FTM"]
+# )
 
 # Create DataLoaders for each dataset
 train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
