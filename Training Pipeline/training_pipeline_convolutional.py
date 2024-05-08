@@ -37,11 +37,12 @@ class AudioDataSet(Dataset):
             self.transform = tv_transforms.Compose(
                 [
                     ta_transforms.MelSpectrogram(
-                        sample_rate=300000,
+                        sample_rate=256000,
                         n_mels=128,
                         f_max=120000,
                         f_min=20000,
-                        normalized=True,
+                        normalized=False,
+                        win_length=512
                     ),
                     tv_transforms.Lambda(lambda img: img.transpose(1, 2)),
                     tv_transforms.Resize((1024, 128)),
@@ -139,8 +140,8 @@ class CNN(torch.nn.Module):
 # Create the dataset
 script_path = Path(__file__).resolve().parent
 # data_path = os.path.join(script_path, "training_data")
-data_path = script_path.parent.parent / "dataset" / "training_data"
-#data_path = script_path / "training_data"
+#data_path = script_path.parent.parent / "dataset" / "training_data"
+data_path = script_path / "training_data"
 
 
 train_dataset = AudioDataSet(data_path / "train")
@@ -198,17 +199,19 @@ for epochs in range(num_epochs):
     for i, (batch, labels) in enumerate(train_loader):
         batch, labels = batch.to(device), labels.to(device)
         # Select the first sample from the batch
-        input = batch
-        if len(input.size()) != 4:
-            print("something wrong with dimentions here")
-            print("input.size", input.size())
-            continue
-        logits = model(input)
-        loss = criterion(logits, labels)
-        total_loss += loss.item()
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        input = batch.squeeze()
+        # if len(input.size()) != 4:
+        #     print("something wrong with dimentions here")
+        #     print("input.size", input.size())
+        #     continue
+        for pic in input:
+            plt.imshow(pic)
+        # logits = model(input)
+        # loss = criterion(logits, labels)
+        # total_loss += loss.item()
+        # optimizer.zero_grad()
+        # loss.backward()
+        # optimizer.step()
         if i % 1000 == 0:
             print(
                 "Epoch "
@@ -230,7 +233,6 @@ for epochs in range(num_epochs):
     tot_val_loss = 0
     for i, (batch, labels) in enumerate(validate_loader):
         batch, labels = batch.to(device), labels.to(device)
-
         input = batch.squeeze()
         if len(input.size()) != 3:
             print("WARNING something wrong with dimentions here")
