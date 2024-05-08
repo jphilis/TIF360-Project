@@ -74,7 +74,7 @@ def main():
     # Rest of your code goes here
 
 
-def johanssen(input_folder: Path, destination_folder: Path, excel_path: Path) -> None:
+def johanssen(input_folder: Path, destination_folder: Path, excel_path: Path,) -> None:
 
     df = pd.read_excel(excel_path)
     # df["art3"] = str(df["art3"]).replace("/", "").lower()

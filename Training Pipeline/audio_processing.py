@@ -68,6 +68,9 @@ def main():
     parser.add_argument("input_folder", help="Path to the input folder")
     parser.add_argument("destination_folder", help="Path to the destination folder")
     args = parser.parse_args()"""
+    data_size_gb = 2
+
+
     target_sr = 300000  # parameter, may be changed
     target_size = 2 * target_sr  # parameter, may be changed
     low_freq = 20000
@@ -101,7 +104,14 @@ def main():
 
     for bat in input_folder.iterdir():
 
-        for file in bat.iterdir():
+        files = bat.glob("**/*")
+        # Check how big the folder is, if bigger than data_size_gb sample from it to only be data_size_gb big
+        if sum(f.stat().st_size for f in files if f.is_file()) > data_size_gb * 1e9:
+            # Sample from the folder
+            files = np.random.choice(files, int(data_size_gb * 1e9 / 1000), replace=False)
+
+
+        for file in files:
 
             r = np.random.rand()
 
