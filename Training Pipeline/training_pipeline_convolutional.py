@@ -140,8 +140,8 @@ class CNN(torch.nn.Module):
 # Create the dataset
 script_path = Path(__file__).resolve().parent
 # data_path = os.path.join(script_path, "training_data")
-#data_path = script_path.parent.parent / "dataset" / "training_data"
-data_path = script_path / "training_data"
+data_path = script_path.parent.parent / "dataset" / "training_data"
+#data_path = script_path / "training_data"
 
 
 train_dataset = AudioDataSet(data_path / "train")
