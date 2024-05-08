@@ -124,23 +124,28 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
 
     return combined_dataset
 
+
 class CNN(torch.nn.Module):
     def __init__(self, num_classes, pretrained_model):
         super().__init__()
-        self.conv = torch.nn.Conv2d(in_channels=1, out_channels=3, kernel_size=1, stride=1, padding=0)
+        self.conv = torch.nn.Conv2d(
+            in_channels=1, out_channels=3, kernel_size=1, stride=1, padding=0
+        )
         self.pretrained_model = pretrained_model
         self.linear = torch.nn.Linear(1000, num_classes)
+
     def forward(self, input):
         x = self.conv(input)
         x = self.pretrained_model(x)
         x = self.linear(x)
         return x
 
+
 # Create the dataset
 script_path = Path(__file__).resolve().parent
 # data_path = os.path.join(script_path, "training_data")
 data_path = script_path.parent.parent / "dataset" / "training_data"
-#data_path = script_path / "training_data"
+# data_path = script_path / "training_data"
 
 
 train_dataset = AudioDataSet(data_path / "train")
@@ -231,12 +236,12 @@ for epochs in range(num_epochs):
     for i, (batch, labels) in enumerate(validate_loader):
         batch, labels = batch.to(device), labels.to(device)
 
-        input = batch.squeeze()
+        input = batch  # .squeeze()
         if len(input.size()) != 3:
             print("WARNING something wrong with dimentions here")
             print("input.size", input.size())
             continue
-        outputs = model(input).logits
+        outputs = model(input)
         _, predicted_labels = torch.max(outputs, 1)
         total_correct += (predicted_labels == labels).sum().item()
         total_samples += labels.size(0)
@@ -267,18 +272,19 @@ for epochs in range(num_epochs):
     )
     if loss < best_loss:
         best_loss = loss
-        torch.save(model.state_dict(), f"best_model_loss_{loss}.pth")
+        folder_name = "cnn"
+        if not os.path.exists(folder_name):
+            os.makedirs(folder_name)
+        torch.save(model.state_dict(), f"{folder_name}/best_model_loss_{loss}.pth")
         message += " (model saved)"
     print(message)
 
 
-#Load the best model
+# Load the best model
 model = torch.load(f"best_model_loss_{best_loss}.pth")
-#Save the test labels and predictions so we can make confusion matrix from them
+# Save the test labels and predictions so we can make confusion matrix from them
 predicted = []
 actual = []
-
-
 
 
 total_correct = 0
@@ -307,7 +313,7 @@ message = "Final test accuracy: " + str(accuracy)
 print(message)
 
 
-#Plot confusion matrix
+# Plot confusion matrix
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 
