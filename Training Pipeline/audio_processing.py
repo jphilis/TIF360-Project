@@ -68,6 +68,8 @@ def main():
     parser.add_argument("input_folder", help="Path to the input folder")
     parser.add_argument("destination_folder", help="Path to the destination folder")
     args = parser.parse_args()"""
+    data_size_gb = 2
+
     target_sr = 300000  # parameter, may be changed
     target_size = 2 * target_sr  # parameter, may be changed
     low_freq = 20000
@@ -84,7 +86,7 @@ def main():
     input_folder = script_directory.parent.parent / "dataset" / "labeled_dataset"
     # destination_folder = script_directory / 'training_data'
     orig_destination_folder = (
-        script_directory.parent.parent / "dataset" / "training_data"
+        script_directory.parent.parent / "dataset" / "training_data_2"
     )
 
     # Print the absolute paths of the input folder and destination folder
@@ -101,7 +103,14 @@ def main():
 
     for bat in input_folder.iterdir():
 
-        for file in bat.iterdir():
+        files = list(bat.glob("**/*"))
+        total_size = sum(f.stat().st_size for f in files if f.is_file())
+        if total_size > data_size_gb * 1e9:
+            mean_size = total_size / len(files)
+            sample_size = int(data_size_gb / mean_size)
+            files = np.random.choice(files, sample_size, replace=False)
+
+        for file in files:
 
             r = np.random.rand()
 
