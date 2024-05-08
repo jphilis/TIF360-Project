@@ -1,3 +1,5 @@
+from matplotlib import pyplot as plt
+import numpy as np
 import torch
 import torch.nn.functional as F
 import torchaudio
@@ -135,6 +137,7 @@ test_dataset = AudioDataSet(data_path / "test")
 # dataset = AudioDataSet(data_path / "train")
 
 num_classes = len(os.listdir(data_path / "train"))
+class_names = [p.stem for p in Path(data_path / "train").glob("*")]
 print("Number of classes:", num_classes)
 # total_size = len(dataset)
 # train_size = int(total_size * 0.8)
@@ -270,17 +273,49 @@ for epochs in range(num_epochs):
     print(message)
 
 
+#Load the best model
+model = torch.load(f"best_model_loss_{best_loss}.pth")
+#Save the test labels and predictions so we can make confusion matrix from them
+predicted = []
+actual = []
+
+
+
+
 total_correct = 0
 total_samples = 0
 for i, (batch, labels) in enumerate(test_loader):
+    actual.extend(labels)
+
     batch, labels = batch.to(device), labels.to(device)
     input = batch.squeeze()
     outputs = model(input).logits
     _, predicted_labels = torch.max(outputs, 1)
+
+    predicted.extend(list(predicted_labels.cpu().numpy()))
     total_correct += (predicted_labels == labels).sum().item()
     total_samples += labels.size(0)
     accuracy = total_correct / total_samples
 
+
+# Save the test labels and predictions
+np.save("test_labels.npy", actual)
+np.save("test_predictions.npy", predicted)
+
+
 accuracy = total_correct / total_samples
 message = "Final test accuracy: " + str(accuracy)
 print(message)
+
+
+#Plot confusion matrix
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+
+cm = confusion_matrix(actual, predicted)
+
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
+
+disp.plot()
+plt.savefig("confusion_matrix.png")
+plt.show()
