@@ -11,6 +11,18 @@ import torchaudio.transforms as ta_transforms
 import torchvision.transforms.v2 as tv_transforms
 import copy
 import datetime
+import sys
+
+
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
+batdetect2_main_dir = os.path.join(parent_dir, "batdetect2-main")
+sys.path.append(batdetect2_main_dir)
+print("batdetect2_main_dir", batdetect2_main_dir)
+from batdetect2 import api
+
+print("parent_dir", parent_dir)
+# from batdetect2-main import api
 
 try:
     import wandb
@@ -65,10 +77,18 @@ class AudioDataSet(Dataset):
         audio_path = self.filenames[idx]
         label = self.labels[idx]
         # Load and preprocess the audio file
-        y, sr = torchaudio.load(audio_path)  # Load audio file
-        if self.transform:
-            y = self.transform(y)
-        return y, label
+        # y, sr = torchaudio.load(audio_path)  # Load audio file
+        # if self.transform:
+        #     y = self.transform(y)
+
+        audio = api.load_audio(audio_path, target_samp_rate=256000)
+        spec = api.generate_spectrogram(audio)
+        spec = torch.transpose(spec, 2, 3)
+        spec = F.interpolate(spec, size=(1024, 128), mode="bilinear")
+        plt.imshow(spec[0, 0, :, :].cpu().numpy())
+        plt.show()
+
+        return spec, label
 
 
 def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
@@ -127,7 +147,7 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
 # Create the dataset
 script_path = Path(__file__).resolve().parent
 # data_path = os.path.join(script_path, "training_data")
-data_path = script_path.parent.parent / "dataset" / "training_data"
+data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50"
 
 
 train_dataset = AudioDataSet(data_path / "train")
@@ -273,13 +293,11 @@ for epochs in range(num_epochs):
     print(message)
 
 
-#Load the best model
+# Load the best model
 model = torch.load(f"best_model_loss_{best_loss}.pth")
-#Save the test labels and predictions so we can make confusion matrix from them
+# Save the test labels and predictions so we can make confusion matrix from them
 predicted = []
 actual = []
-
-
 
 
 total_correct = 0
@@ -308,7 +326,7 @@ message = "Final test accuracy: " + str(accuracy)
 print(message)
 
 
-#Plot confusion matrix
+# Plot confusion matrix
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
 
