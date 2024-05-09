@@ -101,8 +101,8 @@ class AudioDataSet(Dataset):
         spec = api.generate_spectrogram(audio)
         spec = torch.transpose(spec, 2, 3)
         spec = F.interpolate(spec, size=(1024, 128), mode="bilinear")
-        plt.imshow(spec[0, 0, :, :].cpu().numpy())
-        plt.show()
+        # plt.imshow(spec[0, 0, :, :].cpu().numpy())
+        # plt.show()
 
         return spec, label
 
