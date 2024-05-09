@@ -12,6 +12,7 @@ import torchvision.transforms.v2 as tv_transforms
 import copy
 import datetime
 import torchvision
+from PIL import Image
 
 try:
     import wandb
@@ -71,7 +72,19 @@ class AudioDataSet(Dataset):
         y, sr = torchaudio.load(audio_path)  # Load audio file
         if self.transform:
             y = self.transform(y)
-        return y, label
+
+        cmap = plt.get_cmap('viridis')
+        S_color = cmap(y)
+
+        # Remove the alpha channel if present
+        if S_color.shape[2] == 4:
+            S_color = S_color[..., :3]
+
+        # Convert to a format suitable for image processing or CNN input
+        S_image = (S_color * 255).astype(np.uint8)
+        image = Image.fromarray(S_image)
+
+        return image, label
 
 
 def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
@@ -129,16 +142,12 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
 
 class CNN(torch.nn.Module):
     def __init__(self, num_classes, pretrained_model):
-        super().__init__()
-        self.conv = torch.nn.Conv2d(
-            in_channels=1, out_channels=3, kernel_size=1, stride=1, padding=0
-        )
+        super().__init__()                    
         self.pretrained_model = pretrained_model
         self.linear = torch.nn.Linear(1000, num_classes)
 
     def forward(self, input):
-        x = self.conv(input)
-        x = self.pretrained_model(x)
+        x = self.pretrained_model(input)
         x = self.linear(x)
         return x
 
