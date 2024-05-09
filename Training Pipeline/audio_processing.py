@@ -98,7 +98,7 @@ def main():
     orig_destination_folder = (
         script_directory.parent.parent
         / "dataset"
-        / f"training_data_100ms_noise_{max_count}"
+        / f"training_data_100ms_noise_{max_count}_2"
     )
 
     # Print the absolute paths of the input folder and destination folder
