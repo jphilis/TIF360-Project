@@ -12,6 +12,7 @@ import torchvision.transforms.v2 as tv_transforms
 import copy
 import datetime
 import sys
+import random
 
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,7 +34,7 @@ except ImportError:
 
 
 class AudioDataSet(Dataset):
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, file_count_threshold, transform=None):
         """
         Args:
             directory (string): Directory with all the audio files.
@@ -43,6 +44,21 @@ class AudioDataSet(Dataset):
         self.transform = transform
         self.filenames = []
         self.labels = []
+        self.file_count_threshold = file_count_threshold
+        
+        # Walk through the root directory to get subdirectories
+        for index, (dirpath, dirnames, filenames) in enumerate(os.walk(root_dir)):
+            # Ignore the root directory, only process subdirectories
+            if dirpath != root_dir:
+                class_file_names = []
+                for filename in filenames:
+                    if filename.endswith('.wav'):
+                        class_file_names.append(os.path.join(dirpath, filename))
+                        #self.labels.append(index - 1)  # index - 1 to start labeling from 0
+                selected_filenames = random.choices(class_file_names, k=self.file_count_threshold)
+                selected_labels = [index - 1] * self.file_count_threshold
+                self.filenames.extend(selected_filenames)
+                self.labels.extend(selected_labels)
 
         if transform is None:
             self.transform = tv_transforms.Compose(
@@ -59,16 +75,16 @@ class AudioDataSet(Dataset):
                 ]
             )
 
-        # Walk through the root directory to get subdirectories
-        for index, (dirpath, dirnames, filenames) in enumerate(os.walk(root_dir)):
-            # Ignore the root directory, only process subdirectories
-            if dirpath != root_dir:
-                for filename in filenames:
-                    if filename.endswith(".wav"):
-                        self.filenames.append(os.path.join(dirpath, filename))
-                        self.labels.append(
-                            index - 1
-                        )  # index - 1 to start labeling from 0
+        # # Walk through the root directory to get subdirectories
+        # for index, (dirpath, dirnames, filenames) in enumerate(os.walk(root_dir)):
+        #     # Ignore the root directory, only process subdirectories
+        #     if dirpath != root_dir:
+        #         for filename in filenames:
+        #             if filename.endswith(".wav"):
+        #                 self.filenames.append(os.path.join(dirpath, filename))
+        #                 self.labels.append(
+        #                     index - 1
+        #                 )  # index - 1 to start labeling from 0
 
     def __len__(self):
         return len(self.filenames)
