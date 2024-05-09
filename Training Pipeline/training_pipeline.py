@@ -45,17 +45,20 @@ class AudioDataSet(Dataset):
         self.filenames = []
         self.labels = []
         self.file_count_threshold = file_count_threshold
-        
+
         # Walk through the root directory to get subdirectories
         for index, (dirpath, dirnames, filenames) in enumerate(os.walk(root_dir)):
             # Ignore the root directory, only process subdirectories
             if dirpath != root_dir:
                 class_file_names = []
                 for filename in filenames:
-                    if filename.endswith('.wav'):
+                    if filename.endswith(".wav"):
                         class_file_names.append(os.path.join(dirpath, filename))
-                        #self.labels.append(index - 1)  # index - 1 to start labeling from 0
-                selected_filenames = random.choices(class_file_names, k=self.file_count_threshold)
+                        # self.labels.append(index - 1)  # index - 1 to start labeling from 0
+                selected_filenames = random.choices(
+                    class_file_names,
+                    k=min(self.file_count_threshold, len(class_file_names)),
+                )
                 selected_labels = [index - 1] * self.file_count_threshold
                 self.filenames.extend(selected_filenames)
                 self.labels.extend(selected_labels)
@@ -103,6 +106,7 @@ class AudioDataSet(Dataset):
         spec = F.interpolate(spec, size=(1024, 128), mode="bilinear")
         # plt.imshow(spec[0, 0, :, :].cpu().numpy())
         # plt.show()
+
 
         return spec, label
 
@@ -163,12 +167,12 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
 # Create the dataset
 script_path = Path(__file__).resolve().parent
 # data_path = os.path.join(script_path, "training_data")
-data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50"
+data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50_2"
 
 
-train_dataset = AudioDataSet(data_path / "train")
-validate_dataset = AudioDataSet(data_path / "validate")
-test_dataset = AudioDataSet(data_path / "test")
+train_dataset = AudioDataSet(data_path / "train", 20000)
+validate_dataset = AudioDataSet(data_path / "validate", 2000)
+test_dataset = AudioDataSet(data_path / "test", 2000)
 
 # dataset = AudioDataSet(data_path / "train")
 
@@ -202,6 +206,7 @@ config = transformers.AutoConfig.from_pretrained(
 config.num_labels = num_classes  # Update the number of labels
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = "cpu"
 print("Using device:", device)
 model = transformers.AutoModelForAudioClassification.from_pretrained(
     "MIT/ast-finetuned-audioset-10-10-0.4593",
@@ -234,6 +239,9 @@ for epochs in range(num_epochs):
     model.train()  # Set model to training mode
     for i, (batch, labels) in enumerate(train_loader):
         batch, labels = batch.to(device), labels.to(device)
+        print("Batch shape:", batch.shape)
+        print("Labels shape:", labels.shape)
+        print("Unique labels:", torch.unique(labels))
         # Select the first sample from the batch
         input = batch.squeeze()
         if len(input.size()) != 3:
