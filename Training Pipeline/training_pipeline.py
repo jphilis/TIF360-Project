@@ -106,7 +106,10 @@ class AudioDataSet(Dataset):
         spec = F.interpolate(spec, size=(1024, 128), mode="bilinear")
         # plt.imshow(spec[0, 0, :, :].cpu().numpy())
         # plt.show()
-
+        spec = spec.squeeze(
+            0
+        )  # This changes shape from [1, 1, 1024, 128] to [1, 1024, 128]
+        print("spec.shape", spec.shape)
 
         return spec, label
 
