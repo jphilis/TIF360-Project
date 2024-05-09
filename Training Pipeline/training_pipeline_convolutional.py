@@ -13,6 +13,14 @@ import copy
 import datetime
 import torchvision
 from PIL import Image
+import sys
+
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
+batdetect2_main_dir = os.path.join(parent_dir, "batdetect2-main")
+sys.path.append(batdetect2_main_dir)
+print("batdetect2_main_dir", batdetect2_main_dir)
+from batdetect2 import api
 
 try:
     import wandb
@@ -68,21 +76,17 @@ class AudioDataSet(Dataset):
     def __getitem__(self, idx):
         audio_path = self.filenames[idx]
         label = self.labels[idx]
-        # Load and preprocess the audio file
-        y, sr = torchaudio.load(audio_path)  # Load audio file
-        if self.transform:
-            y = self.transform(y)
-
-        cmap = plt.get_cmap('viridis')
-        S_color = cmap(y)
+        audio = api.load_audio(audio_path, target_samp_rate=256000)
+        spec = api.generate_spectrogram(audio)
+        spec = torch.transpose(spec, 2, 3)
+        y = F.interpolate(spec, size=(1024, 128), mode="bilinear")
+        cmap = plt.get_cmap("viridis")
+        S_color = cmap(y.cpu().numpy()).squeeze()
 
         # Remove the alpha channel if present
         if S_color.shape[2] == 4:
             S_color = S_color[..., :3]
-
-        # Convert to a format suitable for image processing or CNN input
-        S_image = (S_color * 255).astype(np.uint8)
-        image = Image.fromarray(S_image)
+        image = torch.tensor(S_color).permute(2, 0, 1).float()
 
         return image, label
 
@@ -142,7 +146,7 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
 
 class CNN(torch.nn.Module):
     def __init__(self, num_classes, pretrained_model):
-        super().__init__()                    
+        super().__init__()
         self.pretrained_model = pretrained_model
         self.linear = torch.nn.Linear(1000, num_classes)
 
