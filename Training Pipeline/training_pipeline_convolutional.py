@@ -38,11 +38,12 @@ class AudioDataSet(Dataset):
                 [
                     ta_transforms.MelSpectrogram(
                         sample_rate=256000,
+                        n_fft=512,
                         n_mels=128,
                         f_max=120000,
                         f_min=20000,
                         normalized=False,
-                        win_length=512
+                        win_length=512,
                     ),
                     tv_transforms.Lambda(lambda img: img.transpose(1, 2)),
                     tv_transforms.Resize((1024, 128)),
@@ -183,6 +184,7 @@ for param in pretrained_model.features.parameters():
     param.requires_grad = False
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cpu")
 print("Using device:", device)
 model = CNN(num_classes, pretrained_model).to(device)
 
@@ -200,32 +202,36 @@ best_loss = 1000
 for epochs in range(num_epochs):
     print("training_loader.size", len(train_loader))
     total_loss = 0
+    loss = 1000
     model.train()  # Set model to training mode
     for i, (batch, labels) in enumerate(train_loader):
         batch, labels = batch.to(device), labels.to(device)
         # Select the first sample from the batch
-        input = batch.squeeze()
-        # if len(input.size()) != 4:
-        #     print("something wrong with dimentions here")
-        #     print("input.size", input.size())
-        #     continue
-        for pic in input:
-            plt.imshow(pic)
-        # logits = model(input)
-        # loss = criterion(logits, labels)
-        # total_loss += loss.item()
-        # optimizer.zero_grad()
-        # loss.backward()
-        # optimizer.step()
+        input = batch  # .squeeze()
+        if len(input.size()) != 4:
+            print("something wrong with dimentions here")
+            print("input.size", input.size())
+            continue
+        # for pic in input:
+        #     plt.imshow(pic)
+        logits = model(input)
+        loss = criterion(logits, labels)
+        total_loss += loss.item()
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
         if i % 1000 == 0:
-            print(
-                "Epoch "
-                + str(epochs + 1)
-                + ", iteration "
-                + str(i)
-                + ": "
-                + str(loss.item())
-            )
+            try:
+                print(
+                    "Epoch "
+                    + str(epochs + 1)
+                    + ", iteration "
+                    + str(i)
+                    + ": "
+                    + str(loss.item())
+                )
+            except Exception as e:
+                print("Error: ", e)
     avg_loss = total_loss / len(train_loader)
     if use_wandb:
         wandb.log({"train_loss": avg_loss, "epoch": epochs + 1})
@@ -239,7 +245,7 @@ for epochs in range(num_epochs):
     for i, (batch, labels) in enumerate(validate_loader):
         batch, labels = batch.to(device), labels.to(device)
         input = batch
-        if len(input.size()) != 3:
+        if len(input.size()) != 4:
             print("WARNING something wrong with dimentions here")
             print("input.size", input.size())
             continue
