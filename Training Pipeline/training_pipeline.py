@@ -110,7 +110,7 @@ class AudioDataSet(Dataset):
         spec = spec.squeeze(
             0
         )  # This changes shape from [1, 1, 1024, 128] to [1, 1024, 128]
-        print("spec.shape", spec.shape)
+        # print("spec.shape", spec.shape)
 
         return spec, label
 
@@ -170,7 +170,7 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
 
 # Create the dataset
 script_path = Path(__file__).resolve().parent
-#data_path = script_path / "training_data"
+# data_path = script_path / "training_data"
 data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50_2"
 
 
@@ -238,14 +238,14 @@ num_epochs = 50
 print("Starting training...")
 best_loss = 1000
 for epochs in range(num_epochs):
-    print("training_loader.size", len(train_loader))
+    # print("training_loader.size", len(train_loader))
     total_loss = 0
     model.train()  # Set model to training mode
     for i, (batch, labels) in enumerate(train_loader):
         batch, labels = batch.to(device), labels.to(device)
-        print("Batch shape:", batch.shape)
-        print("Labels shape:", labels.shape)
-        print("Unique labels:", torch.unique(labels))
+        # print("Batch shape:", batch.shape)
+        # print("Labels shape:", labels.shape)
+        # print("Unique labels:", torch.unique(labels))
         # Select the first sample from the batch
         input = batch.squeeze()
         if len(input.size()) != 3:
