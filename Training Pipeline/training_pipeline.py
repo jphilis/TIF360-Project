@@ -49,6 +49,7 @@ class AudioDataSet(Dataset):
         # Walk through the root directory to get subdirectories
         for index, (dirpath, dirnames, filenames) in enumerate(os.walk(root_dir)):
             # Ignore the root directory, only process subdirectories
+            selected_filenames = []
             if dirpath != root_dir:
                 class_file_names = []
                 for filename in filenames:
@@ -59,7 +60,7 @@ class AudioDataSet(Dataset):
                     class_file_names,
                     k=min(self.file_count_threshold, len(class_file_names)),
                 )
-                selected_labels = [index - 1] * self.file_count_threshold
+                selected_labels = [index - 1] * len(selected_filenames)
                 self.filenames.extend(selected_filenames)
                 self.labels.extend(selected_labels)
 
@@ -169,7 +170,7 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
 
 # Create the dataset
 script_path = Path(__file__).resolve().parent
-# data_path = os.path.join(script_path, "training_data")
+#data_path = script_path / "training_data"
 data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50_2"
 
 
