@@ -157,9 +157,10 @@ class CNN(torch.nn.Module):
     def __init__(self, num_classes, pretrained_model):
         super().__init__()
         self.pretrained_model = pretrained_model
-        self.linear1 = torch.nn.Linear(1000, 512)
-        self.linear2 = torch.nn.Linear(512, 128)
-        self.linear3 = torch.nn.Linear(128, num_classes)
+        self.linear1 = torch.nn.Linear(1000, 1000)
+        self.linear2 = torch.nn.Linear(1000, 512)
+        self.linear3 = torch.nn.Linear(512, 128)
+        self.linear4 = torch.nn.Linear(128, num_classes)
 
     def forward(self, input):
         x = self.pretrained_model(input)
@@ -168,6 +169,8 @@ class CNN(torch.nn.Module):
         x = self.linear2(x)
         x = torch.relu(x)
         x = self.linear3(x)
+        x = torch.relu(x)
+        x = self.linear4(x)
         return x
 
 
@@ -178,8 +181,8 @@ def main():
     data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50_2"
     # data_path = script_path / "training_data"
 
-    train_dataset = AudioDataSet(data_path / "train", 2000)
-    validate_dataset = AudioDataSet(data_path / "validate", 20)
+    train_dataset = AudioDataSet(data_path / "train", 2000000)
+    validate_dataset = AudioDataSet(data_path / "validate", 200000)
     test_dataset = AudioDataSet(data_path / "test", 20)
 
     # dataset = AudioDataSet(data_path / "train")
