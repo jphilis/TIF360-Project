@@ -160,14 +160,19 @@ def test_model(model, test_loader_cnn, test_loader_vit, device, model_name):
 
 def generate_confusion_matrix(actual, predicted, class_names, model_name):
     
+    current_display_labels = set()
+    for label in actual:
+        current_display_labels.add(class_names[label])
+    for label in predicted:
+        current_display_labels.add(class_names[label])
     cm = confusion_matrix(actual, predicted)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
-    num_classes = len(class_names)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=current_display_labels)
+    num_classes = len(current_display_labels)
     plt.figure(figsize=(10, 10))
     ax = plt.gca()
     disp.plot(ax=ax, cmap="viridis", xticks_rotation="vertical")
-    plt.xticks(ticks=np.arange(num_classes), labels=class_names, rotation=90)
-    plt.yticks(ticks=np.arange(num_classes), labels=class_names)
+    plt.xticks(ticks=np.arange(num_classes), labels=current_display_labels, rotation=90)
+    plt.yticks(ticks=np.arange(num_classes), labels=current_display_labels)
     plt.tight_layout()
     plt.savefig(f"confusion_matrix_{model_name}.png")
     plt.show()
