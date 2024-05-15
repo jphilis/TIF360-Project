@@ -67,7 +67,10 @@ def get_directory_size(root_directory: Path):
 if __name__ == "__main__":
     current_file_path = Path(__file__).resolve()
     data_path = (
-        current_file_path.parent.parent.parent / "dataset" / "training_data_2" / "train"
+        current_file_path.parent.parent.parent
+        / "dataset"
+        / "training_data_100ms_noise_50_2"
+        / "train"
     )
     print("data path: ", data_path)
     visualize_raw_data(data_path)
