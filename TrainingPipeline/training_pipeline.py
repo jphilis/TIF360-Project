@@ -174,9 +174,9 @@ def main():
     # data_path = script_path / "training_data"
     data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50_2"
 
-    train_dataset = AudioDataSet(data_path / "train", 20000)
+    train_dataset = AudioDataSet(data_path / "train", 2000000)
     validate_dataset = AudioDataSet(data_path / "validate", 2000)
-    test_dataset = AudioDataSet(data_path / "test", 2000)
+    test_dataset = AudioDataSet(data_path / "test", 20)
 
     # dataset = AudioDataSet(data_path / "train")
 
@@ -357,6 +357,7 @@ def main():
     disp.plot()
     plt.savefig("confusion_matrix.png")
     plt.show()
+
 
 if __name__ == "__main__":
     main()
