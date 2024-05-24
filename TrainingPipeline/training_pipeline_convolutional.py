@@ -174,15 +174,15 @@ class CNN(torch.nn.Module):
         return x
 
 
-def main():
+def main(train_all_layers=True, load_model_path="cnn/best_model_loss_cnn_1.4.pth"):
     # Create the dataset
     script_path = Path(__file__).resolve().parent
     # data_path = os.path.join(script_path, "training_data")
     data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50_2"
     # data_path = script_path / "training_data"
 
-    train_dataset = AudioDataSet(data_path / "train", 2000000)
-    validate_dataset = AudioDataSet(data_path / "validate", 200000)
+    train_dataset = AudioDataSet(data_path / "train", 1000)
+    validate_dataset = AudioDataSet(data_path / "validate", 200)
     test_dataset = AudioDataSet(data_path / "test", 20)
 
     # dataset = AudioDataSet(data_path / "train")
@@ -205,24 +205,29 @@ def main():
     # )
 
     # Create DataLoaders for each dataset
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-    validate_loader = DataLoader(validate_dataset, batch_size=8, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False)
+    batch_size = 32
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    validate_loader = DataLoader(validate_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     pretrained_model = torchvision.models.vgg16(
         torchvision.models.VGG16_Weights.DEFAULT
     )
-    for param in pretrained_model.features.parameters():
-        param.requires_grad = False
-
+    if not train_all_layers:
+        for param in pretrained_model.features.parameters():
+            param.requires_grad = False
+        lr = 0.001
+    else:
+        lr = 0.0001
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # device = torch.device("cpu")
     print("Using device:", device)
     model = CNN(num_classes, pretrained_model).to(device)
+    if train_all_layers:
+        model.load_state_dict(torch.load(load_model_path))
 
     criterion = torch.nn.CrossEntropyLoss()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     if use_wandb:
         wandb.init(project="TIF360", entity="jonatca")
@@ -230,6 +235,7 @@ def main():
     num_epochs = 50
     print("Starting training...")
     best_loss = 1000
+    best_accuracy = 0
     for epochs in range(num_epochs):
         print("training_loader.size", len(train_loader))
         total_loss = 0
@@ -309,13 +315,17 @@ def main():
         message = (
             "Validation accuracy after epoch " + str(epochs + 1) + ": " + str(accuracy)
         )
-        if loss < best_loss:
-            best_loss = loss
+        if loss < best_loss or accuracy > best_accuracy:
+            if loss < best_loss:
+                best_loss = loss
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
             folder_name = "cnn"
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
             torch.save(
-                model.state_dict(), f"{folder_name}/best_model_loss_cnn_{loss}.pth"
+                model.state_dict(),
+                f"{folder_name}/best_model_loss_cnn_loss{loss}_acc{accuracy}_with_aug_trn_all_lrs{train_all_layers}.pth",
             )
             message += " (model saved)"
         print(message)

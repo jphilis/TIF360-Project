@@ -168,15 +168,18 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
     return combined_dataset
 
 
-def main():
+def main(
+    train_all_layers=True,
+    load_model_path="best_model_loss_vit_1.46_no_aug.pth",
+):
     # Create the dataset
     script_path = Path(__file__).resolve().parent
     # data_path = script_path / "training_data"
     data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50_2"
 
-    train_dataset = AudioDataSet(data_path / "train", 2000000)
-    validate_dataset = AudioDataSet(data_path / "validate", 2000)
-    test_dataset = AudioDataSet(data_path / "test", 20)
+    train_dataset = AudioDataSet(data_path / "train", 1000)
+    validate_dataset = AudioDataSet(data_path / "validate", 50)
+    test_dataset = AudioDataSet(data_path / "test", 2)
 
     # dataset = AudioDataSet(data_path / "train")
 
@@ -216,18 +219,20 @@ def main():
         config=config,
         ignore_mismatched_sizes=True,
     ).to(device)
-
+    if train_all_layers:
+        model.load_state_dict(torch.load(load_model_path))
+        for param in model.parameters():
+            param.requires_grad = True
+        lr = 0.0001
+    else:
+        for param in model.audio_spectrogram_transformer.encoder.parameters():
+            param.requires_grad = False
+        for param in model.classifier.parameters():
+            param.requires_grad = True
+        lr = 0.001
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     # Freeze encoder layers
-    for param in model.audio_spectrogram_transformer.encoder.parameters():
-        param.requires_grad = False
-
-    # Make classifier trainable
-    for param in model.classifier.parameters():
-        param.requires_grad = True
-
     criterion = torch.nn.CrossEntropyLoss()
-
-    optimizer = torch.optim.Adam(model.classifier.parameters(), lr=0.001)
 
     if use_wandb:
         wandb.init(project="TIF360", entity="jonatca")
@@ -256,9 +261,10 @@ def main():
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            if i % 1000 == 0:
+            if i % 10 == 0:
+                date_and_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 print(
-                    "Epoch "
+                    f"{date_and_time}: Epoch "
                     + str(epochs + 1)
                     + ", iteration "
                     + str(i)
@@ -289,7 +295,7 @@ def main():
             total_samples += labels.size(0)
             loss = criterion(outputs, labels)
             tot_val_loss += loss.item()
-            if i % 1000 == 0:
+            if i % 10 == 0:
                 time_of_day = datetime.datetime.now().strftime("%H:%M:%S")
                 print(
                     f"{time_of_day} Epoch "
@@ -314,7 +320,10 @@ def main():
         )
         if loss < best_loss:
             best_loss = loss
-            torch.save(model.state_dict(), f"best_model_loss_vit_{loss}.pth")
+            torch.save(
+                model.state_dict(),
+                f"best_model_loss_vit_{loss}_acc_{accuracy}_train_all_{train_all_layers}.pth",
+            )
             message += " (model saved)"
         print(message)
 

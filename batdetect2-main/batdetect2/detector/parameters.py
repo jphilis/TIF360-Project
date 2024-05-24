@@ -78,9 +78,9 @@ def mk_dir(path):
 def get_params(make_dirs=False, exps_dir="../../experiments/"):
     params = {}
 
-    params[
-        "model_name"
-    ] = "Net2DFast"  # Net2DFast, Net2DSkip, Net2DSimple, Net2DSkipDS, Net2DRN
+    params["model_name"] = (
+        "Net2DFast"  # Net2DFast, Net2DSkip, Net2DSimple, Net2DSkipDS, Net2DRN
+    )
     params["num_filters"] = 128
 
     now_str = datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
@@ -94,83 +94,83 @@ def get_params(make_dirs=False, exps_dir="../../experiments/"):
     # params['notes']           = ''  # can save notes about an experiment here
 
     # spec parameters
-    params[
-        "target_samp_rate"
-    ] = TARGET_SAMPLERATE_HZ  # resamples all audio so that it is at this rate
-    params[
-        "fft_win_length"
-    ] = FFT_WIN_LENGTH_S  # in milliseconds, amount of time per stft time step
+    params["target_samp_rate"] = (
+        TARGET_SAMPLERATE_HZ  # resamples all audio so that it is at this rate
+    )
+    params["fft_win_length"] = (
+        FFT_WIN_LENGTH_S  # in milliseconds, amount of time per stft time step
+    )
     params["fft_overlap"] = FFT_OVERLAP  # stft window overlap
 
-    params[
-        "max_freq"
-    ] = MAX_FREQ_HZ  # in Hz, everything above this will be discarded
-    params[
-        "min_freq"
-    ] = MIN_FREQ_HZ  # in Hz, everything below this will be discarded
+    params["max_freq"] = (
+        MAX_FREQ_HZ  # in Hz, everything above this will be discarded
+    )
+    params["min_freq"] = (
+        MIN_FREQ_HZ  # in Hz, everything below this will be discarded
+    )
 
-    params[
-        "resize_factor"
-    ] = RESIZE_FACTOR  # resize so the spectrogram at the input of the network
-    params[
-        "spec_height"
-    ] = SPEC_HEIGHT  # units are number of frequency bins (before resizing is performed)
-    params[
-        "spec_train_width"
-    ] = 512  # units are number of time steps (before resizing is performed)
-    params[
-        "spec_divide_factor"
-    ] = SPEC_DIVIDE_FACTOR  # spectrogram should be divisible by this amount in width and height
+    params["resize_factor"] = (
+        RESIZE_FACTOR  # resize so the spectrogram at the input of the network
+    )
+    params["spec_height"] = (
+        SPEC_HEIGHT  # units are number of frequency bins (before resizing is performed)
+    )
+    params["spec_train_width"] = (
+        512  # units are number of time steps (before resizing is performed)
+    )
+    params["spec_divide_factor"] = (
+        SPEC_DIVIDE_FACTOR  # spectrogram should be divisible by this amount in width and height
+    )
 
     # spec processing params
-    params[
-        "denoise_spec_avg"
-    ] = DENOISE_SPEC_AVG  # removes the mean for each frequency band
-    params[
-        "scale_raw_audio"
-    ] = SCALE_RAW_AUDIO  # scales the raw audio to [-1, 1]
-    params[
-        "max_scale_spec"
-    ] = MAX_SCALE_SPEC  # scales the spectrogram so that it is max 1
+    params["denoise_spec_avg"] = (
+        DENOISE_SPEC_AVG  # removes the mean for each frequency band
+    )
+    params["scale_raw_audio"] = (
+        SCALE_RAW_AUDIO  # scales the raw audio to [-1, 1]
+    )
+    params["max_scale_spec"] = (
+        MAX_SCALE_SPEC  # scales the spectrogram so that it is max 1
+    )
     params["spec_scale"] = SPEC_SCALE  # 'log', 'pcen', 'none'
 
     # detection params
-    params[
-        "detection_overlap"
-    ] = 0.01  # has to be within this number of ms to count as detection
-    params[
-        "ignore_start_end"
-    ] = 0.01  # if start of GT calls are within this time from the start/end of file ignore
-    params[
-        "detection_threshold"
-    ] = DETECTION_THRESHOLD  # the smaller this is the better the recall will be
-    params[
-        "nms_kernel_size"
-    ] = NMS_KERNEL_SIZE  # size of the kernel for non-max suppression
-    params[
-        "nms_top_k_per_sec"
-    ] = NMS_TOP_K_PER_SEC  # keep top K highest predictions per second of audio
+    params["detection_overlap"] = (
+        0.01  # has to be within this number of ms to count as detection
+    )
+    params["ignore_start_end"] = (
+        0.01  # if start of GT calls are within this time from the start/end of file ignore
+    )
+    params["detection_threshold"] = (
+        DETECTION_THRESHOLD  # the smaller this is the better the recall will be
+    )
+    params["nms_kernel_size"] = (
+        NMS_KERNEL_SIZE  # size of the kernel for non-max suppression
+    )
+    params["nms_top_k_per_sec"] = (
+        NMS_TOP_K_PER_SEC  # keep top K highest predictions per second of audio
+    )
     params["target_sigma"] = 2.0
 
     # augmentation params
-    params[
-        "aug_prob"
-    ] = 0.20  # augmentations will be performed with this probability
+    params["aug_prob"] = (
+        0.20  # augmentations will be performed with this probability
+    )
     params["augment_at_train"] = True
     params["augment_at_train_combine"] = True
-    params[
-        "echo_max_delay"
-    ] = 0.005  # simulate echo by adding copy of raw audio
+    params["echo_max_delay"] = (
+        0.005  # simulate echo by adding copy of raw audio
+    )
     params["stretch_squeeze_delta"] = 0.04  # stretch or squeeze spec
-    params[
-        "mask_max_time_perc"
-    ] = 0.05  # max mask size - here percentage, not ideal
-    params[
-        "mask_max_freq_perc"
-    ] = 0.10  # max mask size - here percentage, not ideal
-    params[
-        "spec_amp_scaling"
-    ] = 2.0  # multiply the "volume" by 0:X times current amount
+    params["mask_max_time_perc"] = (
+        0.05  # max mask size - here percentage, not ideal
+    )
+    params["mask_max_freq_perc"] = (
+        0.10  # max mask size - here percentage, not ideal
+    )
+    params["spec_amp_scaling"] = (
+        2.0  # multiply the "volume" by 0:X times current amount
+    )
     params["aug_sampling_rates"] = [
         220500,
         256000,
@@ -183,14 +183,16 @@ def get_params(make_dirs=False, exps_dir="../../experiments/"):
 
     # loss params
     params["train_loss"] = "focal"  # mse or focal
-    params["det_loss_weight"] = 1.0  # weight for the detection part of the loss
+    params["det_loss_weight"] = (
+        1.0  # weight for the detection part of the loss
+    )
     params["size_loss_weight"] = 0.1  # weight for the bbox size loss
     params["class_loss_weight"] = 2.0  # weight for the classification loss
     params["individual_loss_weight"] = 0.0  # not used
     if params["individual_loss_weight"] == 0.0:
-        params[
-            "emb_dim"
-        ] = 0  # number of dimensions used for individual id embedding
+        params["emb_dim"] = (
+            0  # number of dimensions used for individual id embedding
+        )
     else:
         params["emb_dim"] = 3
 

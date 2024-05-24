@@ -1,12 +1,10 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
-from torch.utils.data import Dataset, DataLoader, random_split, ConcatDataset
+from torch.utils.data import Dataset, DataLoader, ConcatDataset
 import os
-import transformers
 from pathlib import Path
 import torchaudio.transforms as ta_transforms
 import torchvision.transforms.v2 as tv_transforms
@@ -16,6 +14,7 @@ import random
 import torchvision
 from PIL import Image
 import sys
+from efficientnet_pytorch import EfficientNet
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
@@ -24,7 +23,6 @@ sys.path.append(batdetect2_main_dir)
 print("batdetect2_main_dir", batdetect2_main_dir)
 from batdetect2 import api
 
-
 try:
     import wandb
 
@@ -32,14 +30,8 @@ try:
 except ImportError:
     use_wandb = False
 
-
 class AudioDataSet(Dataset):
     def __init__(self, root_dir, file_count_threshold, transform=None):
-        """
-        Args:
-            directory (string): Directory with all the audio files.
-            transform (callable, optional): Optional transform to be applied on a sample.
-        """
         self.root_dir = root_dir
         self.transform = transform
         self.filenames = []
@@ -47,14 +39,12 @@ class AudioDataSet(Dataset):
         self.file_count_threshold = file_count_threshold
 
         for index, (dirpath, dirnames, filenames) in enumerate(os.walk(root_dir)):
-            # Ignore the root directory, only process subdirectories
             selected_filenames = []
             if dirpath != root_dir:
                 class_file_names = []
                 for filename in filenames:
                     if filename.endswith(".wav"):
                         class_file_names.append(os.path.join(dirpath, filename))
-                        # self.labels.append(index - 1)  # index - 1 to start labeling from 0
                 selected_filenames = random.choices(
                     class_file_names,
                     k=min(self.file_count_threshold, len(class_file_names)),
@@ -89,18 +79,15 @@ class AudioDataSet(Dataset):
         audio = api.load_audio(audio_path, target_samp_rate=256000)
         spec = api.generate_spectrogram(audio)
         spec = torch.transpose(spec, 2, 3)
-        y = spec[:, :, 5:, :]
-        y = F.interpolate(y, size=(150, 150), mode="bilinear")
+        y = F.interpolate(spec, size=(1024, 128), mode="bilinear")
         cmap = plt.get_cmap("viridis")
         S_color = cmap(y.cpu().numpy()).squeeze()
 
-        # Remove the alpha channel if present
         if S_color.shape[2] == 4:
             S_color = S_color[..., :3]
         image = torch.tensor(S_color).permute(2, 0, 1).float()
 
         return image, label
-
 
 def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
     number_of_FM = 3
@@ -154,104 +141,71 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
 
     return combined_dataset
 
-
 class CNN(torch.nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, pretrained_model):
         super().__init__()
-        self.network = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-            nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-            nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(2, 2),
-            nn.Flatten(),
-            nn.Linear(82944, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 512),
-            nn.ReLU(),
-            nn.Linear(512, num_classes),
-        )
+        self.pretrained_model = pretrained_model
+        self.global_pool = torch.nn.AdaptiveAvgPool2d((1, 1))  # Global Average Pooling
+        self.linear1 = torch.nn.Linear(1280, 512)  # Adjusted for EfficientNet output
+        self.linear2 = torch.nn.Linear(512, 128)
+        self.linear3 = torch.nn.Linear(128, num_classes)
 
-    def forward(self, x):
-        x = self.network(x)
+    def forward(self, input):
+        x = self.pretrained_model.extract_features(input)
+        x = self.global_pool(x)
+        x = torch.flatten(x, 1)
+        x = self.linear1(x)
+        x = torch.relu(x)
+        x = self.linear2(x)
+        x = torch.relu(x)
+        x = self.linear3(x)
         return x
 
-
 def main():
-    # Create the dataset
     script_path = Path(__file__).resolve().parent
-    # data_path = os.path.join(script_path, "training_data")
     data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50_2"
-    # data_path = script_path / "training_data"
 
-    train_dataset = AudioDataSet(data_path / "train", 1000)
-    validate_dataset = AudioDataSet(data_path / "validate", 200)
+    train_dataset = AudioDataSet(data_path / "train", 3000)
+    validate_dataset = AudioDataSet(data_path / "validate", 300)
     test_dataset = AudioDataSet(data_path / "test", 20)
-
-    # dataset = AudioDataSet(data_path / "train")
 
     num_classes = len(os.listdir(data_path / "train"))
     class_names = [p.stem for p in Path(data_path / "train").glob("*")]
     print("Number of classes:", num_classes)
-    # total_size = len(dataset)
-    # train_size = int(total_size * 0.01)
-    # test_size = int(total_size * 0.98)
-    # validate_size = total_size - train_size - test_size
-    #
-    # split the dataset
-    # train_dataset, validate_dataset, test_dataset = random_split(
-    #     dataset, [train_size, validate_size, test_size]
-    # )
 
-    # train_dataset = augment_dataset(
-    #     train_dataset, augmentations=["Normal", "FM", "TM", "FTM"]
-    # )
-
-    # Create DataLoaders for each dataset
     train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
     validate_loader = DataLoader(validate_dataset, batch_size=8, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False)
 
+    # Load the EfficientNet model
+    pretrained_model = EfficientNet.from_pretrained('efficientnet-b0')
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # device = torch.device("cpu")
     print("Using device:", device)
-    model = CNN(num_classes).to(device)
+    model = CNN(num_classes, pretrained_model).to(device)
 
     criterion = torch.nn.CrossEntropyLoss()
-
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
     if use_wandb:
         wandb.init(project="TIF360", entity="jonatca")
-    # Iterate over the dataloader
+
     num_epochs = 50
     print("Starting training...")
     best_loss = 1000
+    best_accuracy = 0
     for epochs in range(num_epochs):
         print("training_loader.size", len(train_loader))
         total_loss = 0
         loss = 1000
-        model.train()  # Set model to training mode
+        model.train()
         for i, (batch, labels) in enumerate(train_loader):
             batch, labels = batch.to(device), labels.to(device)
-            # Select the first sample from the batch
-            input = batch  # .squeeze()
+            input = batch
             if len(input.size()) != 4:
-                print("something wrong with dimentions here")
+                print("something wrong with dimensions here")
                 print("input.size", input.size())
                 continue
-            # for pic in input:
-            #     plt.imshow(pic.transpose(0, 2))
             logits = model(input)
             loss = criterion(logits, labels)
             total_loss += loss.item()
@@ -274,17 +228,16 @@ def main():
         if use_wandb:
             wandb.log({"train_loss": avg_loss, "epoch": epochs + 1})
         time_of_day = datetime.datetime.now().strftime("%H:%M:%S")
-        # print(f"{time_of_day} Epoch " + str(epochs + 1) + " avg loss: ", avg_loss)
         total_correct = 0
         total_samples = 0
-        model.eval()  # Set model to evaluation mode
+        model.eval()
         print("Validating..., validate_loader.size", len(validate_loader))
         tot_val_loss = 0
         for i, (batch, labels) in enumerate(validate_loader):
             batch, labels = batch.to(device), labels.to(device)
             input = batch
             if len(input.size()) != 4:
-                print("WARNING something wrong with dimentions here")
+                print("WARNING something wrong with dimensions here")
                 print("input.size", input.size())
                 continue
             outputs = model(input)
@@ -314,23 +267,27 @@ def main():
                 },
             )
         message = (
-            "Validation accuracy after epoch " + str(epochs + 1) + ": " + str(accuracy)
+            "Validation accuracy after epoch "
+            + str(epochs + 1)
+            + ": "
+            + str(accuracy)
+            + " loss: "
+            + str(loss)
         )
-        if loss < best_loss:
+        if loss < best_loss or accuracy > best_accuracy:
             best_loss = loss
+            best_accuracy = accuracy
             folder_name = "cnn"
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
             torch.save(
                 model.state_dict(),
-                f"{folder_name}/best_model_loss_cnn_custom_{loss}.pth",
+                f"{folder_name}/best_model_loss_cnn_efficientnet_loss{loss}_acc{accuracy}.pth",
             )
             message += " (model saved)"
         print(message)
 
-    # Load the best model
     model = torch.load(f"best_model_loss_cnn_{best_loss}.pth")
-    # Save the test labels and predictions so we can make confusion matrix from them
     predicted = []
     actual = []
 
@@ -349,7 +306,6 @@ def main():
         total_samples += labels.size(0)
         accuracy = total_correct / total_samples
 
-    # Save the test labels and predictions
     np.save("test_labels.npy", actual)
     np.save("test_predictions.npy", predicted)
 
@@ -357,17 +313,13 @@ def main():
     message = "Final test accuracy: " + str(accuracy)
     print(message)
 
-    # Plot confusion matrix
     from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
 
     cm = confusion_matrix(actual, predicted)
-
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
-
     disp.plot()
     plt.savefig("confusion_matrix.png")
     plt.show()
-
 
 if __name__ == "__main__":
     main()
