@@ -90,6 +90,12 @@ def main(mode="mean"):
         f"vit/outputs/outputs_list_best_model_loss_vit_0_acc_0_train_all_True_{i}.npy"
         for i in range(2, 12)
     ]
+    # cnn/outputs/outputs_list_best_model_loss_cnn_loss1.npy
+    # resnet/outputs/outputs_list_best_model_loss_resnet_loss1.npy
+    model_filenames.append("cnn/outputs/outputs_list_best_model_loss_cnn_loss1.npy")
+    model_filenames.append(
+        "resnet/outputs/outputs_list_best_model_loss_resnet_loss1.npy"
+    )
     all_outputs = [load_saved_outputs(filename) for filename in model_filenames]
 
     metrics_filename = f"metrics_{mode}.txt"
@@ -149,10 +155,15 @@ def main(mode="mean"):
         num_models = list(range(1, len(all_outputs) + 1))
 
         # Plot metrics
-        plot_metrics(num_models, f1_scores[9:], "F1 Score", mode)
-        plot_metrics(num_models, balanced_accuracies[9:], "Balanced Accuracy", mode)
-        plot_metrics(num_models, accuracies[9:], "Accuracy", mode)
+        plot_metrics(num_models, f1_scores[len(all_outputs) - 1 :], "F1 Score", mode)
+        plot_metrics(
+            num_models,
+            balanced_accuracies[len(all_outputs) - 1 :],
+            "Balanced Accuracy",
+            mode,
+        )
+        plot_metrics(num_models, accuracies[len(all_outputs) - 1 :], "Accuracy", mode)
 
 
 if __name__ == "__main__":
-    main(mode="vote")  # Change to "mean" or "vote" as needed
+    main(mode="mean")  # Change to "mean" or "vote" as needed

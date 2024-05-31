@@ -205,8 +205,8 @@ def main(
     nr_samples_in_each_class,
     model_filename="vit/used/best_model_loss_vit_0_acc_0_train_all_True_5.pth",
 ):
-    run_cnn = False
-    run_vit = True
+    run_cnn = True
+    run_vit = False
     run_ensemble = False
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # nr_samples_in_each_class = 200
@@ -214,8 +214,8 @@ def main(
         nr_samples_in_each_class
     )
     cnn_model = load_cnn(device, num_classes)
-    vit_model = load_vit(device, num_classes, model_filename=model_filename)
-    ensamble = Ensemble(cnn_model, vit_model)
+    # vit_model = load_vit(device, num_classes, model_filename=model_filename)
+    # ensamble = Ensemble(cnn_model, vit_model)
     if run_cnn:
         cnn_acc, cnn_loss, cnn_actual, cnn_predicted, outputs_list = test_model(
             cnn_model, cnn_test_loader, vit_test_loader, device, "CNN", model_filename
@@ -268,17 +268,20 @@ def main(
         )
     # save the outputs_list to a file with the model name
     model_filename_split = model_filename.split("/")[-1].split(".")[0]
-    output_name = f"vit/outputs/outputs_list_{model_filename_split}.npy"
-    if not os.path.exists("vit/outputs"):
-        os.makedirs("vit/outputs")
-    # np.save(output_name, outputs_list)
+    output_name = f"cnn/outputs/outputs_list_{model_filename_split}.npy"
+    if not os.path.exists("cnn/outputs"):
+        os.makedirs("cnn/outputs")
+    np.save(output_name, outputs_list)
 
-    if run_vit and i == 2:
-        actual_labels_name = "vit/outputs/actual_labels.npy"
-        np.save(actual_labels_name, vit_actual)
+    # if run_vit and i == 2:
+    #     actual_labels_name = "vit/outputs/actual_labels.npy"
+    #     np.save(actual_labels_name, vit_actual)
 
 
 if __name__ == "__main__":
-    for i in range(2, 12):
-        model_filename = f"vit/used/best_model_loss_vit_0_acc_0_train_all_True_{i}.pth"
-        main(nr_samples_in_each_class=100, model_filename=model_filename)
+    # for i in range(2, 12):
+    # model_filename = "resnet/used_models/best_model_loss_resnet_loss1.71_acc0.6906_no_aug_trn_all_lrsTrue_2.pth."
+    model_filename = "resnet/used_models/best_model_loss_resnet_loss1.71_acc0.6906_no_aug_trn_all_lrsTrue_2.pth."
+    model_filename = "cnn/used/best_model_loss_cnn_loss1.3424_acc0.6499_with_aug_trn_all_lrsTrue_finetuned_2.pth"
+    # model_filename = f"vit/used/best_model_loss_vit_0_acc_0_train_all_True_{i}.pth"
+    main(nr_samples_in_each_class=100, model_filename=model_filename)
