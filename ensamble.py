@@ -82,19 +82,21 @@ def plot_metrics(x, y, metric_name, mode):
 
 
 def main(mode="mean"):
-    actual_labels = np.load("vit/outputs/actual_labels.npy")
+    actual_labels = np.load("vit/outputs_test/actual_labels.npy")
     unique_classes = np.unique(actual_labels)
     class_names = [f"Class{i}" for i in range(len(unique_classes))]
 
     model_filenames = [
-        f"vit/outputs/outputs_list_best_model_loss_vit_0_acc_0_train_all_True_{i}.npy"
+        f"vit/outputs_test/outputs_list_best_model_loss_vit_0_acc_0_train_all_True_{i}.npy"
         for i in range(2, 12)
     ]
     # cnn/outputs/outputs_list_best_model_loss_cnn_loss1.npy
     # resnet/outputs/outputs_list_best_model_loss_resnet_loss1.npy
-    model_filenames.append("cnn/outputs/outputs_list_best_model_loss_cnn_loss1.npy")
     model_filenames.append(
-        "resnet/outputs/outputs_list_best_model_loss_resnet_loss1.npy"
+        "cnn/outputs_test/outputs_list_best_model_loss_cnn_loss1.npy"
+    )
+    model_filenames.append(
+        "resnet/outputs_test/outputs_list_best_model_loss_resnet_loss1.npy"
     )
     all_outputs = [load_saved_outputs(filename) for filename in model_filenames]
 

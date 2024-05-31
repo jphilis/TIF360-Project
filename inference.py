@@ -35,13 +35,13 @@ def load_data(nr_samples_in_each_class):
         / "training_data_100ms_noise_50_2"
     )
     cnn_test_dataset = training_pipeline_convolutional.AudioDataSet(
-        data_path / "test", nr_samples_in_each_class
+        data_path / "validate", nr_samples_in_each_class
     )
     vit_test_dataset = training_pipeline.AudioDataSet(
-        data_path / "test", nr_samples_in_each_class
+        data_path / "validate", nr_samples_in_each_class
     )
-    num_classes = len(os.listdir(data_path / "test"))
-    class_names = [p.stem for p in Path(data_path / "test").glob("*")]
+    num_classes = len(os.listdir(data_path / "validate"))
+    class_names = [p.stem for p in Path(data_path / "validate").glob("*")]
     cnn_test_loader = DataLoader(cnn_test_dataset, batch_size=8, shuffle=False)
     vit_test_loader = DataLoader(vit_test_dataset, batch_size=8, shuffle=False)
     return vit_test_loader, cnn_test_loader, num_classes, class_names
@@ -166,7 +166,10 @@ def test_model(
         i += 1
     print("total_correct", total_correct)
     print("total_samples", total_samples)
-    accuracy = total_correct / total_samples
+    try:
+        accuracy = total_correct / total_samples
+    except ZeroDivisionError:
+        accuracy = 0
     loss = tot_val_loss
     return accuracy, loss, actual, predicted, outputs_list
 
@@ -267,21 +270,32 @@ def main(
             ensamble_acc,
         )
     # save the outputs_list to a file with the model name
+    if run_cnn:
+        word = "cnn"
+        if "resnet" in model_filename:
+            word = "resnet"
+    elif run_vit:
+        word = "vit"
+
     model_filename_split = model_filename.split("/")[-1].split(".")[0]
-    output_name = f"cnn/outputs/outputs_list_{model_filename_split}.npy"
-    if not os.path.exists("cnn/outputs"):
-        os.makedirs("cnn/outputs")
+    output_name = f"{word}/outputs_test/outputs_list_{model_filename_split}.npy"
+    if not os.path.exists(f"{word}/outputs_test"):
+        os.makedirs(f"{word}/outputs_test")
     np.save(output_name, outputs_list)
 
     # if run_vit and i == 2:
-    #     actual_labels_name = "vit/outputs/actual_labels.npy"
+    #     actual_labels_name = "vit/outputs_test/actual_labels.npy"
     #     np.save(actual_labels_name, vit_actual)
 
 
 if __name__ == "__main__":
     # for i in range(2, 12):
     # model_filename = "resnet/used_models/best_model_loss_resnet_loss1.71_acc0.6906_no_aug_trn_all_lrsTrue_2.pth."
-    model_filename = "resnet/used_models/best_model_loss_resnet_loss1.71_acc0.6906_no_aug_trn_all_lrsTrue_2.pth."
-    model_filename = "cnn/used/best_model_loss_cnn_loss1.3424_acc0.6499_with_aug_trn_all_lrsTrue_finetuned_2.pth"
+    # model_filename = "resnet/used_models/best_model_loss_resnet_loss1.71_acc0.6906_no_aug_trn_all_lrsTrue_2.pth."
+    # model_filename = "cnn/used/best_model_loss_cnn_loss1.3424_acc0.6499_with_aug_trn_all_lrsTrue_finetuned_2.pth"
     # model_filename = f"vit/used/best_model_loss_vit_0_acc_0_train_all_True_{i}.pth"
+    # main(nr_samples_in_each_class=100, model_filename=model_filename)
+    model_filename = "resnet/used_models/best_model_loss_resnet_loss1.71_acc0.6906_no_aug_trn_all_lrsTrue_2.pth."
+    main(nr_samples_in_each_class=100, model_filename=model_filename)
+    model_filename = "cnn/used/best_model_loss_cnn_loss1.3424_acc0.6499_with_aug_trn_all_lrsTrue_finetuned_2.pth"
     main(nr_samples_in_each_class=100, model_filename=model_filename)
