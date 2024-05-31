@@ -53,14 +53,20 @@ def load_cnn(device, num_classes):
     )
     model = training_pipeline_convolutional.CNN(num_classes, pretrained_model)
     path_to_cnn = (
-        Path(__file__).resolve().parent / "cnn" / "best_model_loss_cnn_1.4.pth"
+        Path(__file__).resolve().parent
+        / "cnn"
+        / "best_model_loss_cnn_loss1.276456973284775_acc0.6308243727598566_with_aug_trn_all_lrsTrue.pth"
     )
     model.load_state_dict(torch.load(path_to_cnn))
     model.eval()
     return model.to(device)
 
 
-def load_vit(device, num_classes):
+def load_vit(
+    device,
+    num_classes,
+    model_filename="best_model_loss_vit_1.2879105645690978_acc_0.6368534482758621_train_all_True.pth",
+):
     config = transformers.AutoConfig.from_pretrained(
         "MIT/ast-finetuned-audioset-10-10-0.4593"
     )
@@ -70,7 +76,7 @@ def load_vit(device, num_classes):
         config=config,
         ignore_mismatched_sizes=True,
     ).to(device)
-    model.load_state_dict(torch.load("best_model_loss_vit_1.2.pth"))
+    model.load_state_dict(torch.load(model_filename))
     return model
 
 
@@ -101,7 +107,9 @@ def get_loss(outputs, labels, criterion, total_correct, total_samples, tot_val_l
     return total_correct, total_samples, tot_val_loss, predicted_labels
 
 
-def test_model(model, test_loader_cnn, test_loader_vit, device, model_name):
+def test_model(
+    model, test_loader_cnn, test_loader_vit, device, model_name, model_filename
+):
     total_samples = 0
     tot_val_loss = 0
     total_correct = 0
@@ -109,6 +117,7 @@ def test_model(model, test_loader_cnn, test_loader_vit, device, model_name):
     i = 0
     predicted = []
     actual = []
+    outputs_list = []
     for cnn, vit in zip(test_loader_cnn, test_loader_vit):
         # if i > 2:
         #     break
@@ -145,6 +154,7 @@ def test_model(model, test_loader_cnn, test_loader_vit, device, model_name):
                 total_samples,
                 tot_val_loss,
             )
+        outputs_list.extend(list(outputs.cpu().detach().numpy()))
         actual.extend(list(labels_cnn.cpu().numpy()))
         predicted.extend(list(predicted_labels.cpu().numpy()))
         if i % 10 == 0:
@@ -158,7 +168,7 @@ def test_model(model, test_loader_cnn, test_loader_vit, device, model_name):
     print("total_samples", total_samples)
     accuracy = total_correct / total_samples
     loss = tot_val_loss
-    return accuracy, loss, actual, predicted
+    return accuracy, loss, actual, predicted, outputs_list
 
 
 def generate_confusion_matrix(
@@ -185,27 +195,30 @@ def generate_confusion_matrix(
     plt.yticks(ticks=np.arange(num_classes), labels=class_names)
     plt.tight_layout()
     plt.savefig(
-        f"confusion_matrix_{model_name}_{nr_samples_in_each_class}_acc_{acc}.png",
+        f"plots/confusion_matrix_{model_name}_{nr_samples_in_each_class}_acc_{acc}.png",
         transparent=True,
     )  # Save the figure with a transparent background
     # plt.show()
 
 
-def main(nr_samples_in_each_class):
+def main(
+    nr_samples_in_each_class,
+    model_filename="vit/used/best_model_loss_vit_0_acc_0_train_all_True_5.pth",
+):
     run_cnn = False
-    run_vit = False
-    run_ensemble = True
+    run_vit = True
+    run_ensemble = False
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # nr_samples_in_each_class = 200
     vit_test_loader, cnn_test_loader, num_classes, class_names = load_data(
         nr_samples_in_each_class
     )
     cnn_model = load_cnn(device, num_classes)
-    vit_model = load_vit(device, num_classes)
+    vit_model = load_vit(device, num_classes, model_filename=model_filename)
     ensamble = Ensemble(cnn_model, vit_model)
     if run_cnn:
-        cnn_acc, cnn_loss, cnn_actual, cnn_predicted = test_model(
-            cnn_model, cnn_test_loader, vit_test_loader, device, "CNN"
+        cnn_acc, cnn_loss, cnn_actual, cnn_predicted, outputs_list = test_model(
+            cnn_model, cnn_test_loader, vit_test_loader, device, "CNN", model_filename
         )
         print(f"Cnn model accuracy: {cnn_acc} and loss: {cnn_loss}")
         generate_confusion_matrix(
@@ -217,8 +230,8 @@ def main(nr_samples_in_each_class):
             cnn_acc,
         )
     if run_vit:
-        vit_acc, vit_loss, vit_actual, vit_predicted = test_model(
-            vit_model, cnn_test_loader, vit_test_loader, device, "VIT"
+        vit_acc, vit_loss, vit_actual, vit_predicted, outputs_list = test_model(
+            vit_model, cnn_test_loader, vit_test_loader, device, "VIT", model_filename
         )
         print(f"Vit model accuracy: {vit_acc} and loss: {vit_loss}")
         generate_confusion_matrix(
@@ -230,8 +243,19 @@ def main(nr_samples_in_each_class):
             vit_acc,
         )
     if run_ensemble:
-        ensamble_acc, ensamble_loss, ensamble_actual, ensamble_predicted = test_model(
-            ensamble, cnn_test_loader, vit_test_loader, device, "Ensemble"
+        (
+            ensamble_acc,
+            ensamble_loss,
+            ensamble_actual,
+            ensamble_predicted,
+            outputs_list,
+        ) = test_model(
+            ensamble,
+            cnn_test_loader,
+            vit_test_loader,
+            device,
+            "Ensemble",
+            model_filename,
         )
         print(f"Ensamble model accuracy: {ensamble_acc} and loss: {ensamble_loss}")
         generate_confusion_matrix(
@@ -242,8 +266,19 @@ def main(nr_samples_in_each_class):
             nr_samples_in_each_class,
             ensamble_acc,
         )
+    # save the outputs_list to a file with the model name
+    model_filename_split = model_filename.split("/")[-1].split(".")[0]
+    output_name = f"vit/outputs/outputs_list_{model_filename_split}.npy"
+    if not os.path.exists("vit/outputs"):
+        os.makedirs("vit/outputs")
+    # np.save(output_name, outputs_list)
+
+    if run_vit and i == 2:
+        actual_labels_name = "vit/outputs/actual_labels.npy"
+        np.save(actual_labels_name, vit_actual)
 
 
 if __name__ == "__main__":
-    main(nr_samples_in_each_class=200)
-    main(nr_samples_in_each_class=100)
+    for i in range(2, 12):
+        model_filename = f"vit/used/best_model_loss_vit_0_acc_0_train_all_True_{i}.pth"
+        main(nr_samples_in_each_class=100, model_filename=model_filename)
