@@ -174,15 +174,18 @@ class CNN(torch.nn.Module):
         return x
 
 
-def main(train_all_layers=True, load_model_path="cnn/best_model_loss_cnn_1.4.pth"):
+def main(
+    train_all_layers=True,
+    load_model_path="cnn/best_model_loss_cnn_loss1.7_acc0.50_with_aug_trn_all_lrsFalse_base_2.pth",
+):
     # Create the dataset
     script_path = Path(__file__).resolve().parent
     # data_path = os.path.join(script_path, "training_data")
     data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50_2"
     # data_path = script_path / "training_data"
 
-    train_dataset = AudioDataSet(data_path / "train", 1000)
-    validate_dataset = AudioDataSet(data_path / "validate", 200)
+    train_dataset = AudioDataSet(data_path / "train", 1500)
+    validate_dataset = AudioDataSet(data_path / "test", 100)
     test_dataset = AudioDataSet(data_path / "test", 20)
 
     # dataset = AudioDataSet(data_path / "train")
@@ -205,7 +208,7 @@ def main(train_all_layers=True, load_model_path="cnn/best_model_loss_cnn_1.4.pth
     # )
 
     # Create DataLoaders for each dataset
-    batch_size = 32
+    batch_size = 8
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     validate_loader = DataLoader(validate_dataset, batch_size=batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
@@ -257,7 +260,7 @@ def main(train_all_layers=True, load_model_path="cnn/best_model_loss_cnn_1.4.pth
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            if i % 1000 == 0:
+            if i % 100 == 0:
                 try:
                     print(
                         "Epoch "
@@ -292,7 +295,7 @@ def main(train_all_layers=True, load_model_path="cnn/best_model_loss_cnn_1.4.pth
             total_samples += labels.size(0)
             loss = criterion(outputs, labels)
             tot_val_loss += loss.item()
-            if i % 1000 == 0:
+            if i % 50 == 0:
                 time_of_day = datetime.datetime.now().strftime("%H:%M:%S")
                 print(
                     f"{time_of_day} Epoch "
@@ -325,7 +328,7 @@ def main(train_all_layers=True, load_model_path="cnn/best_model_loss_cnn_1.4.pth
                 os.makedirs(folder_name)
             torch.save(
                 model.state_dict(),
-                f"{folder_name}/best_model_loss_cnn_loss{loss}_acc{accuracy}_with_aug_trn_all_lrs{train_all_layers}.pth",
+                f"{folder_name}/best_model_loss_cnn_loss{loss}_acc{accuracy}_no_aug_trn_all_lrs{train_all_layers}.pth",
             )
             message += " (model saved)"
         print(message)

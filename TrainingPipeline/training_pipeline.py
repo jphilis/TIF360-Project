@@ -169,16 +169,19 @@ def augment_dataset(dataset, augmentations=["Normal"]) -> ConcatDataset:
 
 
 def main(
-    train_all_layers=True,
-    load_model_path="best_model_loss_vit_1.46_no_aug.pth",
+    train_all_layers=False,
+    load_model_path="",
+    nr=4,
+    num_epochs=10,
 ):
     # Create the dataset
     script_path = Path(__file__).resolve().parent
     # data_path = script_path / "training_data"
     data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50_2"
 
-    train_dataset = AudioDataSet(data_path / "train", 1000)
-    validate_dataset = AudioDataSet(data_path / "validate", 50)
+    random_nr = random.randint(500, 3000)
+    train_dataset = AudioDataSet(data_path / "train", random_nr)
+    validate_dataset = AudioDataSet(data_path / "test", 100)  # switch back to validate
     test_dataset = AudioDataSet(data_path / "test", 2)
 
     # dataset = AudioDataSet(data_path / "train")
@@ -201,9 +204,9 @@ def main(
     # )
 
     # Create DataLoaders for each dataset
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-    validate_loader = DataLoader(validate_dataset, batch_size=8, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=4, shuffle=True)
+    validate_loader = DataLoader(validate_dataset, batch_size=4, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False)
 
     # Load the configuration of the pre-trained model
     config = transformers.AutoConfig.from_pretrained(
@@ -237,7 +240,6 @@ def main(
     if use_wandb:
         wandb.init(project="TIF360", entity="jonatca")
     # Iterate over the dataloader
-    num_epochs = 50
     print("Starting training...")
     best_loss = 1000
     for epochs in range(num_epochs):
@@ -320,53 +322,22 @@ def main(
         )
         if loss < best_loss:
             best_loss = loss
+            loss = 0
+            accuracy = 0
             torch.save(
                 model.state_dict(),
-                f"best_model_loss_vit_{loss}_acc_{accuracy}_train_all_{train_all_layers}.pth",
+                f"best_model_loss_vit_{loss}_acc_{accuracy}_train_all_{train_all_layers}_{nr}.pth",
             )
             message += " (model saved)"
         print(message)
 
-    # Load the best model
-    model = torch.load(f"best_model_loss_vit_{best_loss}.pth")
-    # Save the test labels and predictions so we can make confusion matrix from them
-    predicted = []
-    actual = []
-
-    total_correct = 0
-    total_samples = 0
-    for i, (batch, labels) in enumerate(test_loader):
-        actual.extend(labels)
-
-        batch, labels = batch.to(device), labels.to(device)
-        input = batch.squeeze()
-        outputs = model(input).logits
-        _, predicted_labels = torch.max(outputs, 1)
-
-        predicted.extend(list(predicted_labels.cpu().numpy()))
-        total_correct += (predicted_labels == labels).sum().item()
-        total_samples += labels.size(0)
-        accuracy = total_correct / total_samples
-
-    # Save the test labels and predictions
-    np.save("test_labels.npy", actual)
-    np.save("test_predictions.npy", predicted)
-
-    accuracy = total_correct / total_samples
-    message = "Final test accuracy: " + str(accuracy)
-    print(message)
-
-    # Plot confusion matrix
-    from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-
-    cm = confusion_matrix(actual, predicted)
-
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=class_names)
-
-    disp.plot()
-    plt.savefig("confusion_matrix.png")
-    plt.show()
-
 
 if __name__ == "__main__":
-    main()
+    for nr in range(5, 50):
+        main(train_all_layers=False, nr=nr, num_epochs=5)
+        main(
+            train_all_layers=True,
+            load_model_path=f"best_model_loss_vit_0_acc_0_train_all_False_{nr}.pth",
+            num_epochs=15,
+            nr=nr,
+        )

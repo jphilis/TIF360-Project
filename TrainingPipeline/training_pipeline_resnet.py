@@ -165,34 +165,46 @@ class CNN(torch.nn.Module):
         return x
 
 
-def main():
+def main(
+    train_all_layers=True,
+    load_model_path="resnet/best_model_loss_resnet_loss2.3174_acc0.3082_no_aug_trn_all_lrsFalse_2.pth",
+):
     script_path = Path(__file__).resolve().parent
     data_path = script_path.parent.parent / "dataset" / "training_data_100ms_noise_50_2"
 
-    train_dataset = AudioDataSet(data_path / "train", 3000)
-    validate_dataset = AudioDataSet(data_path / "validate", 300)
+    train_dataset = AudioDataSet(data_path / "train", 1500)
+    validate_dataset = AudioDataSet(data_path / "test", 100)
     test_dataset = AudioDataSet(data_path / "test", 20)
 
     num_classes = len(os.listdir(data_path / "train"))
     class_names = [p.stem for p in Path(data_path / "train").glob("*")]
     print("Number of classes:", num_classes)
 
-    train_loader = DataLoader(train_dataset, batch_size=8, shuffle=True)
-    validate_loader = DataLoader(validate_dataset, batch_size=8, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=8, shuffle=False)
+    batch_size = 8
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    validate_loader = DataLoader(validate_dataset, batch_size=batch_size, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     pretrained_model = torchvision.models.resnet50(
         weights=torchvision.models.ResNet50_Weights.DEFAULT
     )
-    for param in pretrained_model.parameters():
-        param.requires_grad = False
+    if not train_all_layers:
+        for param in pretrained_model.parameters():
+            param.requires_grad = False
+        lr = 0.001
+    else:
+        for param in pretrained_model.parameters():
+            param.requires_grad = True
+        lr = 0.0001
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using device:", device)
     model = CNN(num_classes, pretrained_model).to(device)
+    if train_all_layers:
+        model.load_state_dict(torch.load(load_model_path))
 
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     if use_wandb:
         wandb.init(project="TIF360", entity="jonatca")
@@ -282,14 +294,19 @@ def main():
             + str(loss)
         )
         if loss < best_loss or accuracy > best_accuracy:
-            best_loss = loss
-            best_accuracy = accuracy
+            if loss < best_loss:
+                best_loss = loss
+            if accuracy > best_accuracy:
+                best_accuracy = accuracy
             folder_name = "resnet"
             if not os.path.exists(folder_name):
                 os.makedirs(folder_name)
+            model_nr = 2
+            loss = round(loss, 4)
+            accuracy = round(accuracy, 4)
             torch.save(
                 model.state_dict(),
-                f"{folder_name}/best_model_loss_resnet_loss{loss}_acc{accuracy}.pth",
+                f"{folder_name}/best_model_loss_resnet_loss{loss}_acc{accuracy}_no_aug_trn_all_lrs{train_all_layers}_{model_nr}.pth",
             )
             message += " (model saved)"
         print(message)
