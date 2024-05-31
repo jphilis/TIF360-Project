@@ -1,0 +1,23 @@
+Model 1 - F1: 0.6484, Balanced Accuracy: 0.6378, Accuracy: 0.6619
+Model 2 - F1: 0.6509, Balanced Accuracy: 0.6791, Accuracy: 0.6595
+Model 3 - F1: 0.6419, Balanced Accuracy: 0.6469, Accuracy: 0.6458
+Model 4 - F1: 0.6504, Balanced Accuracy: 0.6302, Accuracy: 0.6643
+Model 5 - F1: 0.6403, Balanced Accuracy: 0.6459, Accuracy: 0.6440
+Model 6 - F1: 0.6078, Balanced Accuracy: 0.6511, Accuracy: 0.6183
+Model 7 - F1: 0.6003, Balanced Accuracy: 0.6287, Accuracy: 0.6039
+Model 8 - F1: 0.6338, Balanced Accuracy: 0.6644, Accuracy: 0.6476
+Model 9 - F1: 0.5666, Balanced Accuracy: 0.5985, Accuracy: 0.5800
+Model 10 - F1: 0.6318, Balanced Accuracy: 0.6467, Accuracy: 0.6326
+Model 11 - F1: 0.6279, Balanced Accuracy: 0.6612, Accuracy: 0.6362
+Model 12 - F1: 0.6339, Balanced Accuracy: 0.6731, Accuracy: 0.6440
+Ensemble of first 2 models - F1: 0.7607, Balanced Accuracy: 0.7364, Accuracy: 0.7718
+Ensemble of first 3 models - F1: 0.8313, Balanced Accuracy: 0.8167, Accuracy: 0.8387
+Ensemble of first 4 models - F1: 0.8586, Balanced Accuracy: 0.8249, Accuracy: 0.8656
+Ensemble of first 5 models - F1: 0.8797, Balanced Accuracy: 0.8452, Accuracy: 0.8871
+Ensemble of first 6 models - F1: 0.8879, Balanced Accuracy: 0.8522, Accuracy: 0.8949
+Ensemble of first 7 models - F1: 0.8884, Balanced Accuracy: 0.8879, Accuracy: 0.8961
+Ensemble of first 8 models - F1: 0.8906, Balanced Accuracy: 0.8909, Accuracy: 0.8990
+Ensemble of first 9 models - F1: 0.9027, Balanced Accuracy: 0.9177, Accuracy: 0.9098
+Ensemble of first 10 models - F1: 0.9057, Balanced Accuracy: 0.9031, Accuracy: 0.9122
+Ensemble of first 11 models - F1: 0.9114, Balanced Accuracy: 0.9255, Accuracy: 0.9176
+Ensemble of first 12 models - F1: 0.9162, Balanced Accuracy: 0.9287, Accuracy: 0.9217
